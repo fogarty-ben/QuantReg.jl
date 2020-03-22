@@ -26,3 +26,4 @@ data/
 # environment.
 Manifest.toml
 quantreg.code-workspace
+.vscode/settings.json
