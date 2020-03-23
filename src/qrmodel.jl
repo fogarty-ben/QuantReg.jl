@@ -45,3 +45,9 @@ function QuantRegModel(model::QuantRegModel, resp::QuantRegResp)
     QuantRegModel(model.formula, model.data, model.mf, model.mm,
                   model.τ, model.method, resp)
 end
+
+function QuantRegModel(model::QuantRegModel, τ::Number)
+    mr = QuantRegResp(false, nothing, nothing, nothing, nothing)
+    QuantRegModel(model.formula, model.data, model.mf, model.mm,
+                  τ, model.method, mr)
+end
