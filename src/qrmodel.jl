@@ -9,7 +9,7 @@ mutable struct QuantRegResp
     fitted::Bool
     coefficients::Union{Vector, Nothing}
     residuals::Union{Vector, Nothing}
-    dual::Union{Vector, Nothing}
+    dual::Union{Array, Nothing}
     fittedvalues::Union{Vector, Nothing}
 end
 
@@ -34,10 +34,14 @@ struct QuantRegModel <: StatisticalModel
     response::QuantRegResp
 end
 
-# should this be convenience constructor or function rq
 function QuantRegModel(formula, data; τ::Number=0.5, method::String="br")
     mf = ModelFrame(formula, data)
     mm = ModelMatrix(mf)
     mr = QuantRegResp(false, nothing, nothing, nothing, nothing)
     QuantRegModel(formula, data, mf,mm, τ, method, mr)
+end
+
+function QuantRegModel(model::QuantRegModel, resp::QuantRegResp)
+    QuantRegModel(model.formula, model.data, model.mf, model.mm,
+                  model.τ, model.method, resp)
 end
