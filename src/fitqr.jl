@@ -1,4 +1,5 @@
-using LinearAlgebra, Distributions, Statistics, Libdl
+using LinearAlgebra, Distributions, Statistics
+const rqbrlib = joinpath(@__DIR__, "FORTRAN/rqbr.dylib")
 
 """
     fit(model)
@@ -14,9 +15,11 @@ function fit(model::QuantRegModel)
         elseif model.method == "gurobi"
             fitfxn = fitgurobi
         end
+        fittedmodel 
     elseif model.τ < 0 | model.τ > 1
         error("Error: τ must be in [0, 1]")
-    fittedmodel
+    else
+        return model
     end
 end
 
@@ -103,17 +106,21 @@ function fitbrfortran(n, k, X, y, τ, nsol, ndsol, cutoff, lci1)
     ci = zeros(4, k)
     tnmat = zeros(4, k)
     big = prevfloat(Inf)
-    ccall(("rqbr_", "rqbr"), Cvoid, (Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32},
-                          Ptr{Float64}, Ptr{Float64}, Ref{Float64}, Ref{Float64},
-                          Ref{Int32}, Ptr{Float64}, Ptr{Float64}, Ptr{Int32}, Ptr{Float64},
-                          Ptr{Float64}, Ref{Int32}, Ref{Int32}, Ptr{Float64}, Ptr{Float64},
-                          Ref{Int32}, Ptr{Int32}, Ptr{Float64}, Ref{Float64}, Ptr{Float64},
-                          Ptr{Float64}, Ref{Float64}, Ref{Int32}),
+    ccall(("rqbr_", rqbrlib), Cvoid,
+          (Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32},
+           Ptr{Float64}, Ptr{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32}, Ptr{Float64},
+           Ptr{Float64}, Ptr{Int32}, Ptr{Float64}, Ptr{Float64}, Ref{Int32}, Ref{Int32},
+           Ptr{Float64}, Ptr{Float64}, Ref{Int32}, Ptr{Int32}, Ptr{Float64}, Ref{Float64},
+           Ptr{Float64}, Ptr{Float64}, Ref{Float64}, Ref{Int32}),
           n, k, n + 5, k + 3, k + 4, X, y, τ, tol, ift, β, μ, s, wa, wb, nsol, ndsol, sol,
           dsol, lsol, h, qn, cutoff, ci, tnmat, big, lci1)
     return β, μ, dsol
 end
 
-# Fit using Gurobi
+"""
+    fitgurobi(model) 
+
+Fit quantile regresion model using Gurobi.
+"""
 function fitgurobi
 end
