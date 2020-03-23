@@ -1,6 +1,10 @@
 using LinearAlgebra, Distributions, Statistics, Libdl
 
-# Move to other 
+"""
+    fit(model)
+
+Fit a quantile regression model.
+"""
 function fit(model::QuantRegModel)
     if !model.response.fitted & 0 <= model.τ <= 1
         fitfxn = nothing
@@ -16,7 +20,19 @@ function fit(model::QuantRegModel)
     end
 end
 
-# Fit using Barrodale-Roberts from R quantreg
+"""
+    fitbr(model, α=0.5, ci=false, iid=true, interp=true, tcrit=true), 
+
+Fit quantile regresion model using the Barrodale-Roberts method.
+
+# Arguments
+- `model`: QuantRegModel to fit
+- `α`: test size,
+- `ci`: calculate confidence intervals with rank inversion,
+- `iid`: whether to pase rank inversion on an i.i.d. error model
+- `interp`: iterpolate discrete rank order ci
+- `tcrit`: use student's t dist for crit values (as opposed to normal dist)
+"""
 function fitbr(model::QuantRegModel; α=0.5, ci=false, iid=true, interp=true, tcrit=true)
     big = prevfloat(Inf)
     X = model.mm.m
@@ -61,14 +77,15 @@ end
 Call rqbr RATFOR code.
 
 # Arguments
-- `n` = number of observations
-- `k` = number of parameters
-- `X` = x matrix
-- `y` = y vector
-- `τ` = the desired quantile
-- `nsol` = an estimated (row) dimension of the primal solution array
-- `ndsol1` = an estimated (row) dimension of the dual solution array
-- `cutoff`, the critical point for testing
+- `n`: number of observations
+- `k`: number of parameters
+- `X`: x matrix
+- `y`: y vector
+- `τ`: the desired quantile
+- `nsol`: an estimated (row) dimension of the primal solution array
+- `ndsol1`: an estimated (row) dimension of the dual solution array
+- `cutoff`: the critical point for testing
+- `lci1`: whether to calculate CI
 """
 function fitbrfortran(n, k, X, y, τ, nsol, ndsol, cutoff, lci1)
     tol = eps()^(2/3) # floating point tolerance
