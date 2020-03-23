@@ -10,7 +10,6 @@ function fit(model::QuantRegModel)
     if !model.response.fitted & 0 <= model.τ <= 1
         fitfxn = nothing
         if model.method == "br"
-            print("here")
             fittedmodel = fitbr(model)
         elseif model.method == "gurobi"
             fitfxn = fitgurobi
