@@ -23,7 +23,6 @@ function compute_bandwidth(τ, n; hs=true)
     end
 end
 
-
 """
     compute_inf(model, se; hs=true)
 
