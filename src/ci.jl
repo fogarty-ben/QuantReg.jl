@@ -17,7 +17,6 @@ function compute_bandwidth(τ, n; hs=true)
     d = pdf(dist, q)
     if hs
         qsize = quantile(dist, 1 - α/2)
-        print(n^(-1/3) * qsize^(2/3) * ((1.5 * d^2)/(2 * q^2 + 1))^(1/3))
         n^(-1/3) * qsize^(2/3) * ((1.5 * d^2)/(2 * q^2 + 1))^(1/3)
     else
         n^(-1/5) * ((4.5 * d^4)/(2 * q^2 + 1)^2)^(1/5)

@@ -15,7 +15,7 @@ end
 
 mutable struct QuantRegInf
     computed::Bool
-    method::String
+    method::Union{Nothing,String}
     α::Number
     hs::Union{Nothing, Bool}
     lowerci::Union{Nothing, Number, Vector{Number}}
@@ -49,6 +49,7 @@ end
 
 function QuantRegModel(formula, data; τ::Number=0.5, method::String="br", inf="rank",
                        α=0.05, hs=true)
+    formula = apply_schema(formula, schema(formula, data), QuantRegModel)
     mf = ModelFrame(formula, data)
     mm = ModelMatrix(mf)
     mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
@@ -69,5 +70,7 @@ end
 function QuantRegModel(model::QuantRegModel, τ::Number)
     mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
     QuantRegModel(model.formula, model.data, model.mf, model.mm,
-                  τ, model.method, mfit, copy!(model.inf))
+                  τ, model.method, mfit, model.inf)
 end
+
+implicit_intercept(::QuantRegModel) = true
