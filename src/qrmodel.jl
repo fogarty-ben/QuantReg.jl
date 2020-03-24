@@ -15,9 +15,12 @@ end
 
 mutable struct QuantRegInf
     computed::Bool
-    method::Union{Nothing,String}
+    rankscore::Bool
     α::Number
     hs::Union{Nothing, Bool}
+    iid::Bool
+    interp::Bool
+    tcrit::Bool
     lowerci::Union{Nothing, Number, Vector{Number}}
     upperci::Union{Nothing, Number, Vector{Number}}
     σ::Union{Nothing, Number}
@@ -47,13 +50,14 @@ struct QuantRegModel <: StatisticalModel
     inf::QuantRegInf
 end
 
-function QuantRegModel(formula, data; τ::Number=0.5, method::String="br", inf="rank",
-                       α=0.05, hs=true)
+function QuantRegModel(formula, data; τ::Number=0.5, method::String="br", rankscore=false,
+                       α=0.05, hs=true, iid=true, interp=true, tcrit=true)
     formula = apply_schema(formula, schema(formula, data), QuantRegModel)
     mf = ModelFrame(formula, data)
     mm = ModelMatrix(mf)
     mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
-    minf = QuantRegInf(false, inf, α, hs, nothing, nothing, nothing, nothing, nothing)
+    minf = QuantRegInf(false, rankscore, α, hs, iid, interp, tcrit,
+                       nothing, nothing, nothing, nothing, nothing)
     QuantRegModel(formula, data, mf, mm, τ, method, mfit, minf)
 end
 

@@ -1,6 +1,6 @@
 module QuantReg
 
-export QuantRegModel, fit, calcci
+export QuantRegModel, fit, compute_inf
 
 include("qrmodel.jl")
 include("fitqr.jl")

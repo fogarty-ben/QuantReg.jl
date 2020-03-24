@@ -35,7 +35,7 @@ Fit quantile regresion model using the Barrodale-Roberts method.
 - `interp`: iterpolate discrete rank order ci
 - `tcrit`: use student's t dist for crit values (as opposed to normal dist)
 """
-function fitbr(model::QuantRegModel; α=0.1, ci=false, iid=true, interp=true, tcrit=true)
+function fitbr(model::QuantRegModel; ci=false)
     big = prevfloat(Inf)
     X = model.mm.m
     y = response(model.mf)
@@ -50,52 +50,15 @@ function fitbr(model::QuantRegModel; α=0.1, ci=false, iid=true, interp=true, tc
         error("Cannot compute rankscore inference for model with one predictor")
     end
     if ci
-        lci1 = true
-        if tcrit
-            dist = TDist(n - k)
-        else
-            dist = Normal()
-        end
-        cutoff = quantile(dist, 1 - α/2)
-        if iid
-            qn = 1 ./ diag(inv(transpose(X) * X))
-        else
-            band = compute_bandwidth(model.τ, n, hs=model.inf.hs)
-            if model.τ + band > 1 || model.τ - band < 0
-                error("Cannot compute CI: one of bandwidth bounds outside [0, 1].")
-            end
-            ϵ = eps()^(1/2) # question as to whether need this
-            ubmodel = QuantRegModel(model, model.τ + band)
-            ub = fitbr(ubmodel, ci=false).fit.coef
-            lbmodel = QuantRegModel(model, model.τ - band)
-            lb = fitbr(lbmodel, ci=false).fit.coef
-            δypred = model.mm.m * (ub - lb)
-            if any(δypred .<= 0)
-                @warn sum(δypred <= 0) * "non-positive fis. See" *
-                      "http://www.econ.uiuc.edu/~roger/research/rq/FAQ #7."
-            end
-            f = (max.(0, (2 * band)./(δypred .- ϵ)))
-            regressors = filter(x -> (x != ConstantTerm(-1)) & (x != ConstantTerm(0)),
-                                terms(model.formula)[2:end])
-            enum_regressors = convert(Array{Integer}, [1:1:length(regressors);])
-            qn = map(i -> compute_nid_qn(i, model.data, regressors, f), enum_regressors) 
-        end
+        lci1, qn, cutoff = compute_inf_rs(model)
     else
         lci1 = false
         qn = zeros(k)
         cutoff = 0
     end
-
     β, μ, d, ci = fitbrfortran(n, k, X, y, model.τ, nsol, ndsol, qn, cutoff, lci1)
     mfit = QuantRegFit(true, β, μ, d, response(model.mf) - μ)
     QuantRegModel(model, mfit)
-end
-
-function compute_nid_qn(i, data, regressors, weights)
-    model = lm(regressors[i] ~ foldl(+, vcat([ConstantTerm(0)], regressors[Not(i)])), data,
-               wts=weights)
-    resid = residuals(model)
-    sum(resid .^ 2)
 end
 
 """

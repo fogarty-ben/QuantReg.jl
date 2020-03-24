@@ -24,33 +24,102 @@ function compute_bandwidth(τ, n; hs=true)
 end
 
 """
-    compute_inf(model, se; hs=true)
+    interpolate_ci(ci:Array{Float64, 2})
 
-Do inference for quantile regression model.
-
-# Arguments
-- `model`: quantile regression model
-- `method`: means of computing inference; available options:
-  - `iid`: asymptotic covariance matrix with assumption errors are iid
-  - `nid`: asymptotic covariance matrix with assumption errors are nid
-- `hs`: if true, use Hall Sheather bandwidth (only applicable for iid and nid methods)
+Interpolate between values just above and just below cutoff.
 """
-function compute_inf(model::QuantRegModel; se="nid", hs=true)
+function interpolate_ci(ci::Array{Float64, 2})
+    return nothing
+end
+
+"""
+    compute_inf(model)
+
+Compute inference for quantile regression model.
+"""
+function compute_inf(model::QuantRegModel)
     if !model.fit.computed
         error("Model must be fitted before calculating confidence interval.")
-    elseif se == "iid"
-        σ = compute_iid_inf(model, hs)
-    elseif se == "nid"
-        σ = compute_nid_inf(model, hs)
+    elseif model.inf.computed
+        return model
+    elseif model.inf.rankscore
+        println("HERE")
+        ci = fitbr(model; ci=true)
+        ci
+        if model.inf.interp
+            ci
+            #interpolate_ci(ci)
+        end
+    else
+        if model.inf.iid
+            σ = compute_inf_asy_iid(model)
+        else
+            σ = compute_inf_asy_nid(model)
+        end
     end   
 end  
 
 """
-    compute_iid_inf(model, hs)
+    compute_rs_nid_qn(i::Integer, data::DataFrame, regressors::Array{Term},
+                      weights::Array{Float64})
+
+Computes residuals variances from the projection of each column of X on remaining columns
+for rankscore inference under the n.i.d. assumption.
+"""
+function compute_rs_nid_qn(i, data, regressors, weights)
+    model = lm(regressors[i] ~ foldl(+, vcat([ConstantTerm(0)], regressors[Not(i)])), data,
+               wts=weights)
+    resid = residuals(model)
+    sum(resid .^ 2)
+end
+
+"""
+    compute_inf_rankscore(model, hs)
 
 Compute inference for a quantile regression model under iid assumption.
 """
-function compute_iid_inf(model::QuantRegModel, hs)
+function compute_inf_rs(model::QuantRegModel)
+    X = model.mm.m
+    n, k = size(X)
+    lci1 = true
+    if model.inf.tcrit
+        dist = TDist(n - k)
+    else
+        dist = Normal()
+    end
+    cutoff = quantile(dist, 1 - model.inf.α/2)
+    if model.inf.iid
+        qn = 1 ./ diag(inv(transpose(X) * X))
+    else
+        band = compute_bandwidth(model.τ, n, hs=model.inf.hs)
+        if model.τ + band > 1 || model.τ - band < 0
+            error("Cannot compute CI: one of bandwidth bounds outside [0, 1].")
+        end
+        ϵ = eps()^(1/2) # question as to whether need this
+        ubmodel = QuantRegModel(model, model.τ + band)
+        ub = fitbr(ubmodel, ci=false).fit.coef
+        lbmodel = QuantRegModel(model, model.τ - band)
+        lb = fitbr(lbmodel, ci=false).fit.coef
+        δypred = model.mm.m * (ub - lb)
+        if any(δypred .<= 0)
+            @warn sum(δypred <= 0) * "non-positive fis. See" *
+                    "http://www.econ.uiuc.edu/~roger/research/rq/FAQ #7."
+        end
+        f = (max.(0, (2 * band)./(δypred .- ϵ)))
+        regressors = filter(x -> (x != ConstantTerm(-1)) & (x != ConstantTerm(0)),
+                            terms(model.formula)[2:end])
+        enum_regressors = convert(Array{Integer}, [1:1:length(regressors);])
+        qn = map(i -> compute_rs_nid_qn(i, model.data, regressors, f), enum_regressors) 
+    end
+    return lci1, qn, cutoff
+end
+
+"""
+    compute_inf_asy_iod(model, hs)
+
+Compute asymptotic inference for a quantile regression model under iid assumption.
+"""
+function compute_inf_asy_iid(model::QuantRegModel)
     n, k = size(model.mm.m)
     resid = model.fit.resid
     ϵ = eps()^(1/2)
@@ -58,7 +127,7 @@ function compute_iid_inf(model::QuantRegModel, hs)
     fnorminv = fr \ I
     fnorminv = fnorminv * transpose(fnorminv)
     pz = sum(abs.(resid) .< ϵ)
-    band = max(k + 1, ceil(n * compute_bandwidth(model.τ, n; hs=hs)))
+    band = max(k + 1, ceil(n * compute_bandwidth(model.τ, n; hs=model.inf.hs)))
     ir = convert(Array{Integer}, [(pz + 1):1:(band + pz + 1);])
     residorder = sort(resid[sortperm(abs.(resid))][ir])
     xt = ir/(n-k)
@@ -72,13 +141,13 @@ function compute_iid_inf(model::QuantRegModel, hs)
 end
 
 """
-    compute_nid_inf(model, hs)
+    compute_inf_asy_nid(model, hs)
 
-Calculate a confidence interval for a quantile regression model under nid assumption.
+Compute asymptotic inference for a quantile regression model under nid assumption.
 """
-function compute_nid_inf(model::QuantRegModel, hs)
+function compute_inf_asy_nid(model::QuantRegModel)
     n = length(response(model.mf))
-    band = compute_bandwidth(model.τ, n, hs=hs)
+    band = compute_bandwidth(model.τ, n, hs=model.inf.hs)
     if model.τ + band > 1 || model.τ - band < 0
         error("Cannot compute CI: one of bandwidth bounds outside [0, 1].")
     end
