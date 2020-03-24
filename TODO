@@ -1,11 +1,12 @@
 - Inference
   - IID: complete
   - NID: complete
-  - Rank-BR
-  - Rank-Gurobi
-- Gurobi implementation
-- Coef. table/output
-- Other solving methods from Kronker
-- Clean-up
-- Simulation code
-- Documentation/Readme
+  - Rank-BR: complete
+  - Writing inference back to model (1)
+  - RS-Gurobi (if time) (4)
+- Gurobi fit implementation: Complete
+- Coef. table/output (2)
+- Other solving methods from Kronker (3)
+- Clean-up (6)
+- Simulation code (5)
+- Documentation/Readme (7)
