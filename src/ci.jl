@@ -1,4 +1,4 @@
-using Distributions, StatsModels, LinearAlgebra
+using Distributions, StatsModels, LinearAlgebra, GLM
 
 """
     calcbandwidth(τ, n, hs=false)
@@ -43,7 +43,6 @@ function compute_inf(model::QuantRegModel)
     elseif model.inf.computed
         return model
     elseif model.inf.rankscore
-        println("HERE")
         ci = fitbr(model; ci=true)
         ci
         if model.inf.interp
