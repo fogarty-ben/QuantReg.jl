@@ -1,4 +1,4 @@
-using LinearAlgebra, Distributions, Statistics
+using LinearAlgebra, Distributions, Statistics, GLM
 const rqbrlib = joinpath(@__DIR__, "FORTRAN/rqbr.dylib")
 
 """
@@ -7,7 +7,7 @@ const rqbrlib = joinpath(@__DIR__, "FORTRAN/rqbr.dylib")
 Fit a quantile regression model.
 """
 function fit(model::QuantRegModel)
-    if !model.response.fitted & 0 <= model.τ <= 1
+    if !model.fit.computed & 0 <= model.τ <= 1
         fitfxn = nothing
         if model.method == "br"
             fittedmodel = fitbr(model)
@@ -30,12 +30,12 @@ Fit quantile regresion model using the Barrodale-Roberts method.
 # Arguments
 - `model`: QuantRegModel to fit
 - `α`: test size,
-- `ci`: calculate confidence intervals with rank inversion,
+- `ci`: calculate confidence intervals with rank inversion
 - `iid`: whether to pase rank inversion on an i.i.d. error model
 - `interp`: iterpolate discrete rank order ci
 - `tcrit`: use student's t dist for crit values (as opposed to normal dist)
 """
-function fitbr(model::QuantRegModel; α=0.5, ci=false, iid=true, interp=true, tcrit=true)
+function fitbr(model::QuantRegModel; α=0.1, ci=true, iid=false, interp=true, tcrit=true)
     big = prevfloat(Inf)
     X = model.mm.m
     y = response(model.mf)
@@ -46,31 +46,27 @@ function fitbr(model::QuantRegModel; α=0.5, ci=false, iid=true, interp=true, tc
     ny = size(y)[1]
     nsol = 2
     ndsol = 2
-    # This is where Kronker checks (& corrects) for out of bounds tau
     if k == 1
-        ci = false
+        error("Cannot compute rankscore inference for model with one predictor")
     end
     if ci
-        lci = true
-        if (tcrit)
-            dist = TDist(n-k)
+        lci1 = true
+        if tcrit
+            dist = TDist(n - k)
         else
             dist = Normal()
         end
         cutoff = quantile(dist, 1 - α/2)
-        if (!iid) # Implement different form of testing w/ density estimation
-        else
-            qn = 1 / diag(transpose(X) * X)
-        end
+        qn = 1 ./ diag(inv(transpose(X) * X))
     else
         lci1 = false
         qn = zeros(k)
         cutoff = 0
     end
-    β, μ, d= fitbrfortran(n, k, X, y, model.τ, nsol, ndsol, cutoff, lci1)
+    β, μ, d, ci = fitbrfortran(n, k, X, y, model.τ, nsol, ndsol, qn, cutoff, lci1)
 
-    resp = QuantRegResp(true, β, μ, d, response(model.mf) - μ)
-    QuantRegModel(model, resp)
+    mfit = QuantRegFit(true, β, μ, d, response(model.mf) - μ)
+    QuantRegModel(model, mfit)
 end
 
 """
@@ -86,12 +82,13 @@ Call rqbr RATFOR code.
 - `τ`: the desired quantile
 - `nsol`: an estimated (row) dimension of the primal solution array
 - `ndsol1`: an estimated (row) dimension of the dual solution array
+- `qn`: residuals variances from the projection of each column of X on remaining columns
 - `cutoff`: the critical point for testing
 - `lci1`: whether to calculate CI
 """
-function fitbrfortran(n, k, X, y, τ, nsol, ndsol, cutoff, lci1)
+function fitbrfortran(n, k, X, y, τ, nsol, ndsol, qn, cutoff, lci1)
     tol = eps()^(2/3) # floating point tolerance
-    ift = 0
+    ift = 1
     β = zeros(k)
     μ = zeros(n)
     s = zeros(n)
@@ -101,7 +98,6 @@ function fitbrfortran(n, k, X, y, τ, nsol, ndsol, cutoff, lci1)
     dsol = zeros(n, ndsol)
     lsol = 0
     h = zeros(k, nsol)
-    qn = zeros(k)
     ci = zeros(4, k)
     tnmat = zeros(4, k)
     big = prevfloat(Inf)
@@ -113,7 +109,7 @@ function fitbrfortran(n, k, X, y, τ, nsol, ndsol, cutoff, lci1)
            Ptr{Float64}, Ptr{Float64}, Ref{Float64}, Ref{Int32}),
           n, k, n + 5, k + 3, k + 4, X, y, τ, tol, ift, β, μ, s, wa, wb, nsol, ndsol, sol,
           dsol, lsol, h, qn, cutoff, ci, tnmat, big, lci1)
-    return β, μ, dsol
+    return β, μ, dsol, ci
 end
 
 """

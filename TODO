@@ -1,4 +1,8 @@
 - Inference
+  - IID: complete
+  - NID: complete
+  - Rank-BR
+  - Rank-Gurobi
 - Gurobi implementation
 - Coef. table/output
 - Other solving methods from Kronker

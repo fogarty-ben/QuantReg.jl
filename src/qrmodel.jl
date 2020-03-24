@@ -5,12 +5,24 @@ using DataFrames, StatsBase, StatsModels, SparseArrays
 
 Contains response from fitting a quantile regression model.
 """
-mutable struct QuantRegResp
-    fitted::Bool
-    coefficients::Union{Vector, Nothing}
-    residuals::Union{Vector, Nothing}
+mutable struct QuantRegFit
+    computed::Bool
+    coef::Union{Vector, Nothing}
+    resid::Union{Vector, Nothing}
     dual::Union{Array, Nothing}
-    fittedvalues::Union{Vector, Nothing}
+    yhat::Union{Vector, Nothing}
+end
+
+mutable struct QuantRegInf
+    computed::Bool
+    method::String
+    α::Number
+    hs::Union{Nothing, Bool}
+    lowerci::Union{Nothing, Number, Vector{Number}}
+    upperci::Union{Nothing, Number, Vector{Number}}
+    σ::Union{Nothing, Number}
+    t::Union{Nothing, Number}
+    p::Union{Nothing, Number}
 end
 
 """
@@ -31,23 +43,31 @@ struct QuantRegModel <: StatisticalModel
     mm::ModelMatrix
     τ::Number
     method::String
-    response::QuantRegResp
+    fit::QuantRegFit
+    inf::QuantRegInf
 end
 
-function QuantRegModel(formula, data; τ::Number=0.5, method::String="br")
+function QuantRegModel(formula, data; τ::Number=0.5, method::String="br", inf="rank",
+                       α=0.05, hs=true)
     mf = ModelFrame(formula, data)
     mm = ModelMatrix(mf)
-    mr = QuantRegResp(false, nothing, nothing, nothing, nothing)
-    QuantRegModel(formula, data, mf,mm, τ, method, mr)
+    mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
+    minf = QuantRegInf(false, inf, α, hs, nothing, nothing, nothing, nothing, nothing)
+    QuantRegModel(formula, data, mf, mm, τ, method, mfit, minf)
 end
 
-function QuantRegModel(model::QuantRegModel, resp::QuantRegResp)
+function QuantRegModel(model::QuantRegModel, mfit::QuantRegFit)
     QuantRegModel(model.formula, model.data, model.mf, model.mm,
-                  model.τ, model.method, resp)
+                  model.τ, model.method, mfit, model.inf)
+end
+
+function QuantRegModel(model::QuantRegModel, minf::QuantRegInf)
+    QuantRegModel(model.formula, model.data, model.mf, model.mm,
+                  model.τ, model.method, model.fit, minf)
 end
 
 function QuantRegModel(model::QuantRegModel, τ::Number)
-    mr = QuantRegResp(false, nothing, nothing, nothing, nothing)
+    mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
     QuantRegModel(model.formula, model.data, model.mf, model.mm,
-                  τ, model.method, mr)
+                  τ, model.method, mfit, copy!(model.inf))
 end

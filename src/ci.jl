@@ -17,6 +17,7 @@ function compute_bandwidth(τ, n; hs=true)
     d = pdf(dist, q)
     if hs
         qsize = quantile(dist, 1 - α/2)
+        print(n^(-1/3) * qsize^(2/3) * ((1.5 * d^2)/(2 * q^2 + 1))^(1/3))
         n^(-1/3) * qsize^(2/3) * ((1.5 * d^2)/(2 * q^2 + 1))^(1/3)
     else
         n^(-1/5) * ((4.5 * d^4)/(2 * q^2 + 1)^2)^(1/5)
@@ -36,7 +37,7 @@ Do inference for quantile regression model.
 - `hs`: if true, use Hall Sheather bandwidth (only applicable for iid and nid methods)
 """
 function compute_inf(model::QuantRegModel; se="nid", hs=true)
-    if !model.response.fitted
+    if !model.fit.computed
         error("Model must be fitted before calculating confidence interval.")
     elseif se == "iid"
         σ = compute_iid_inf(model, hs)
@@ -52,7 +53,7 @@ Compute inference for a quantile regression model under iid assumption.
 """
 function compute_iid_inf(model::QuantRegModel, hs)
     n, k = size(model.mm.m)
-    resid = model.response.residuals
+    resid = model.fit.resid
     ϵ = eps()^(1/2)
     fr = qr(model.mm.m).R
     fnorminv = fr \ I
@@ -65,7 +66,7 @@ function compute_iid_inf(model::QuantRegModel, hs)
     df = DataFrame(residorder=residorder, xt=xt)
     auxmodel = QuantRegModel(@formula(residorder ~ xt), df)
     auxmodel = fit(auxmodel)
-    sparsity = auxmodel.response.coefficients[2]
+    sparsity = auxmodel.fit.coef[2]
     cov = sparsity^2 * fnorminv * model.τ * (1 - model.τ)
     scale = 1/sparsity
     sqrt.(diag(cov))
@@ -79,15 +80,14 @@ Calculate a confidence interval for a quantile regression model under nid assump
 function compute_nid_inf(model::QuantRegModel, hs)
     n = length(response(model.mf))
     band = compute_bandwidth(model.τ, n, hs=hs)
-    print(band)
     if model.τ + band > 1 || model.τ - band < 0
         error("Cannot compute CI: one of bandwidth bounds outside [0, 1].")
     end
     ϵ = eps()^(1/2)
     ubmodel = QuantRegModel(model, model.τ + band)
-    ub = fit(ubmodel).response.coefficients
+    ub = fit(ubmodel).fit.coef
     lbmodel = QuantRegModel(model, model.τ - band)
-    lb = fit(lbmodel).response.coefficients
+    lb = fit(lbmodel).fit.coef
     δypred = model.mm.m * (ub - lb)
     if any(δypred .<= 0)
         @warn sum(δypred <= 0) * "non-positive fis. See" *
