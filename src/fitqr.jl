@@ -1,4 +1,4 @@
-using LinearAlgebra, Distributions, Statistics, GLM
+using LinearAlgebra, Distributions, Statistics, Gurobi, JuMP
 const rqbrlib = joinpath(@__DIR__, "FORTRAN/rqbr.dylib")
 
 """
@@ -109,5 +109,29 @@ end
 
 Fit quantile regresion model using Gurobi.
 """
-function fitgurobi
+function fitgurobi(model::QuantRegModel)
+    optimizer = Gurobi.Optimizer()
+    lp = direct_model(optimizer)
+    
+    X = model.mm.m
+    y = response(model.mf)
+    n, k = size(X)
+
+    @variable(lp, β[1:k])
+    @variable(lp, u[1:n] >= 0)
+    @variable(lp, v[1:n] >= 0)
+    exp = AffExpr(0)
+    for i in 1:n
+        add_to_expression!(exp, model.τ, u[i])
+        add_to_expression!(exp, (1 - model.τ), v[i])
+    end
+    @objective(lp, Min, exp)
+    @constraint(lp, feas[i=1:n], sum(X[i, j] * β[j] for j in 1:k) - u[i] + v[i] == y[i])
+    optimize!(lp)
+    β = value.(β)
+    μ = value.(v) - value.(u)
+    d = dual.(feas) .+ 0.5
+    print(d)
+    mfit = QuantRegFit(true, β, μ, d, y - μ)
+    QuantRegModel(model, mfit)
 end
