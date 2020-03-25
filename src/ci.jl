@@ -49,7 +49,7 @@ function compute_inf!(model::QuantRegModel)
         error("Model must be fitted before calculating confidence interval.")
     elseif model.inf.computed
         return model
-    elseif model.inf.rankscore
+    elseif model.inf.exact
         model = fitbr!(model; ci=true)
     else
         if model.inf.iid
@@ -73,7 +73,7 @@ compute_inf(model::QuantRegModel) = compute_inf!(copy(model))
                       weights::Array{Float64})
 
 Computes residuals variances from the projection of each column of X on remaining columns
-for rankscore inference under the n.i.d. assumption.
+for exact inference under the n.i.d. assumption.
 """
 function compute_rs_nid_qn(i, data, regressors, weights)
     model = lm(regressors[i] ~ foldl(+, vcat([ConstantTerm(0)], regressors[Not(i)])), data,

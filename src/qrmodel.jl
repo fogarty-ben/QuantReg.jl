@@ -15,7 +15,7 @@ end
 
 mutable struct QuantRegInf
     computed::Bool
-    rankscore::Bool
+    exact::Bool
     α::Number
     hs::Union{Nothing, Bool}
     iid::Bool
@@ -51,13 +51,13 @@ struct QuantRegModel <: StatisticalModel
 end
 
 # update default constructor
-function QuantRegModel(formula, data; τ::Number=0.5, method::String="br", rankscore=false,
+function QuantRegModel(formula, data; τ::Number=0.5, method::String="br", exact=false,
                        α=0.05, hs=true, iid=true, interp=true, tcrit=true)
     formula = apply_schema(formula, schema(formula, data), QuantRegModel)
     mf = ModelFrame(formula, data)
     mm = ModelMatrix(mf)
     mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
-    minf = QuantRegInf(false, rankscore, α, hs, iid, interp, tcrit,
+    minf = QuantRegInf(false, exact, α, hs, iid, interp, tcrit,
                        nothing, nothing, nothing, nothing, nothing)
     QuantRegModel(formula, data, mf, mm, τ, method, mfit, minf)
 end
@@ -72,11 +72,11 @@ end
 function copy(model::QuantRegModel)
     mfit = QuantRegFit(model.fit.computed, model.fit.coef, model.fit.resid, model.fit.dual,
                        model.fit.yhat)
-    minf = QuantRegInf(model.inf.computed, model.inf.rankscore, model.inf.α, model.inf.hs,
+    minf = QuantRegInf(model.inf.computed, model.inf.exact, model.inf.α, model.inf.hs,
                        model.inf.iid, model.inf.interpolate, model.inf.tcrit,
                        model.inf.lowerci, model.inf.upperci, model.inf.σ, model.inf.t,
                        model.inf.p)
-    mframe = ModelFrame(model.formula, model.data, QuantRegModel)
+    mframe = ModelFrame(model.formula, model.data)
     mmatrix = ModelMatrix(mframe)
     QuantRegModel(model.formula, model.data, mframe, mmatrix, model.τ, model.method, mfit,
                   minf)
@@ -84,5 +84,20 @@ end
 
 implicit_intercept(::QuantRegModel) = true
 
-#coef(model::QuantRegModel) = model.fit.coef
-#coefnames(model)
+coef(model::QuantRegModel) = model.fit.computed ? model.fit.coef :
+                             error("Model hasn't been fit.")
+coefnames(model::QuantRegModel) = coefnames(model.mf)
+dof(model::QuantRegModel) = size(model.mm.m)[2]
+
+isfitted(model::QuantRegModel) = model.fit.computed
+islinear(::QuantRegModel) = true
+nobs(model::QuantRegModel) = size(model.mm.m)[1]
+stderr(model::QuantRegModel) = model.inf.computed & !model.inf.exact ? model.inf.σ :
+                               ["NA" for i=1:size(model.mm.m)[2]]
+fitted(model::QuantRegModel) = model.fit.computed ? model.fit.yhat :
+                               error("Model hasn't been fit.")
+modelmatrix(model::QuantRegModel) = model.mm
+response(model::QuantRegModel) = response(model.mf)
+responsename(model::QuantRegModel) = terms(model.formula)[1]
+residuals(model::QuantRegModel) = model.fit.computed ? model.fit.resid :
+                                  error("Model hasn't been fit.")

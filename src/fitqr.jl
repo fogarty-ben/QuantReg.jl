@@ -22,6 +22,8 @@ function fit!(model::QuantRegModel)
     end
 end
 
+fit(model::QuantRegModel) = fit!(copy(model))
+
 """
     fitbr(model, α=0.5, ci=false, iid=true, interp=true, tcrit=true), 
 
@@ -47,7 +49,7 @@ function fitbr!(model::QuantRegModel; ci=false)
     nsol = 2
     ndsol = 2
     if k == 1
-        error("Cannot compute rankscore inference for model with one predictor")
+        error("Cannot compute exact inference for model with one predictor")
     end
     if ci
         lci1, qn, cutoff = compute_inf_rs(model)
