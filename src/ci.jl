@@ -24,12 +24,19 @@ function compute_bandwidth(τ, n; hs=true)
 end
 
 """
-    interpolate_ci(ci:Array{Float64, 2})
+    write_ci(model::QuantRegModel, ci::Array{Number, 2})
 
-Interpolate between values just above and just below cutoff.
+Write CI results to a model.
 """
-function interpolate_ci(ci::Array{Float64, 2})
-    return nothing
+function write_ci!(model::QuantRegModel, ci::Array{Float64, 2}, tnmat::Array{Float64, 2},
+                   cutoff::Float64)
+    if model.inf.interpolate
+        model.inf.lowerci = ci[2,:] .- (abs.(ci[1,:] .- ci[2,:]) .* (cutoff .- abs.(tnmat[2,:]))) ./ abs.(tnmat[1,:] .- tnmat[2,:])
+        model.inf.upperci = ci[3,:] .+ (abs.(ci[4,:] .- ci[3,:]) .* (cutoff .- abs.(tnmat[3,:]))) ./ abs.(tnmat[4,:] .- tnmat[3,:])
+    else
+        model.inf.lowerci = ci[1:2,:]
+        model.inf.upperci = ci[3:4,:]
+    end
 end
 
 """
@@ -37,25 +44,26 @@ end
 
 Compute inference for quantile regression model.
 """
-function compute_inf(model::QuantRegModel)
+function compute_inf!(model::QuantRegModel)
     if !model.fit.computed
         error("Model must be fitted before calculating confidence interval.")
     elseif model.inf.computed
         return model
     elseif model.inf.rankscore
-        ci = fitbr(model; ci=true)
-        ci
-        if model.inf.interp
-            ci
-            #interpolate_ci(ci)
-        end
+        model = fitbr!(model; ci=true)
     else
         if model.inf.iid
             σ = compute_inf_asy_iid(model)
         else
             σ = compute_inf_asy_nid(model)
         end
-    end   
+        model.inf.σ = σ
+        model.inf.t = model.fit.coef ./ model.inf.σ
+        n, k = size(model.mm)
+        dist = TDist(n - k)
+        model.inf.p = 2 * (1 - cdf(dist, model.inf.t))
+    end
+    model.inf.computed = true
 end  
 
 """
@@ -96,9 +104,9 @@ function compute_inf_rs(model::QuantRegModel)
         end
         ϵ = eps()^(1/2) # question as to whether need this
         ubmodel = QuantRegModel(model, model.τ + band)
-        ub = fitbr(ubmodel, ci=false).fit.coef
+        ub = fitbr!(ubmodel, ci=false).fit.coef
         lbmodel = QuantRegModel(model, model.τ - band)
-        lb = fitbr(lbmodel, ci=false).fit.coef
+        lb = fitbr!(lbmodel, ci=false).fit.coef
         δypred = model.mm.m * (ub - lb)
         if any(δypred .<= 0)
             @warn sum(δypred <= 0) * "non-positive fis. See" *

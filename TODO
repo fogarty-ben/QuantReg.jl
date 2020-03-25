@@ -2,9 +2,9 @@
   - IID: complete
   - NID: complete
   - Rank-BR: complete
-  - Writing inference back to model (1)
-  - RS-Gurobi (if time) (4)
+  - Writing inference back to model (Complete)
 - Gurobi fit implementation: Complete
+- Functional-style models (1)
 - Coef. table/output (2)
 - Other solving methods from Kronker (3)
 - Clean-up (6)

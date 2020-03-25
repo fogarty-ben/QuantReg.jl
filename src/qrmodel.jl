@@ -19,10 +19,10 @@ mutable struct QuantRegInf
     α::Number
     hs::Union{Nothing, Bool}
     iid::Bool
-    interp::Bool
+    interpolate::Bool
     tcrit::Bool
-    lowerci::Union{Nothing, Number, Vector{Number}}
-    upperci::Union{Nothing, Number, Vector{Number}}
+    lowerci::Union{Nothing, Array{Number}}
+    upperci::Union{Nothing, Array{Number}}
     σ::Union{Nothing, Number}
     t::Union{Nothing, Number}
     p::Union{Nothing, Number}

@@ -6,19 +6,19 @@ const rqbrlib = joinpath(@__DIR__, "FORTRAN/rqbr.dylib")
 
 Fit a quantile regression model.
 """
-function fit(model::QuantRegModel)
+function fit!(model::QuantRegModel)
     if !model.fit.computed & 0 <= model.τ <= 1
         fitfxn = nothing
         if model.method == "br"
-            fittedmodel = fitbr(model)
+            fittedmodel = fitbr!(model)
         elseif model.method == "gurobi"
-            fitfxn = fitgurobi
+            fittedmodel = fitgurobi!(model)
         end
-        fittedmodel 
+        fittedmodel
     elseif model.τ < 0 | model.τ > 1
         error("Error: τ must be in [0, 1]")
     else
-        return model
+        model
     end
 end
 
@@ -35,7 +35,7 @@ Fit quantile regresion model using the Barrodale-Roberts method.
 - `interp`: iterpolate discrete rank order ci
 - `tcrit`: use student's t dist for crit values (as opposed to normal dist)
 """
-function fitbr(model::QuantRegModel; ci=false)
+function fitbr!(model::QuantRegModel; ci=false)
     big = prevfloat(Inf)
     X = model.mm.m
     y = response(model.mf)
@@ -56,9 +56,21 @@ function fitbr(model::QuantRegModel; ci=false)
         qn = zeros(k)
         cutoff = 0
     end
-    β, μ, d, ci = fitbrfortran(n, k, X, y, model.τ, nsol, ndsol, qn, cutoff, lci1)
-    mfit = QuantRegFit(true, β, μ, d, response(model.mf) - μ)
-    QuantRegModel(model, mfit)
+    print(qn)
+    β, μ, d, confint, tnmat = fitbrfortran(n, k, X, y, model.τ, nsol, ndsol, qn, cutoff,
+                                           lci1)
+    
+    if !ci
+        model.fit.computed = true
+        model.fit.coef = β
+        model.fit.resid = μ
+        model.fit.dual = d
+        model.fit.yhat = y - μ
+    else
+        write_ci!(model, confint, tnmat, cutoff)
+    end
+
+    model
 end
 
 """
@@ -93,6 +105,7 @@ function fitbrfortran(n, k, X, y, τ, nsol, ndsol, qn, cutoff, lci1)
     ci = zeros(4, k)
     tnmat = zeros(4, k)
     big = prevfloat(Inf)
+
     ccall(("rqbr_", rqbrlib), Cvoid,
           (Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32},
            Ptr{Float64}, Ptr{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32}, Ptr{Float64},
@@ -101,7 +114,8 @@ function fitbrfortran(n, k, X, y, τ, nsol, ndsol, qn, cutoff, lci1)
            Ptr{Float64}, Ptr{Float64}, Ref{Float64}, Ref{Int32}),
           n, k, n + 5, k + 3, k + 4, X, y, τ, tol, ift, β, μ, s, wa, wb, nsol, ndsol, sol,
           dsol, lsol, h, qn, cutoff, ci, tnmat, big, lci1)
-    return β, μ, dsol, ci
+    print(ci)
+    β, μ, dsol, ci, tnmat
 end
 
 """
@@ -109,7 +123,7 @@ end
 
 Fit quantile regresion model using Gurobi.
 """
-function fitgurobi(model::QuantRegModel)
+function fitgurobi!(model::QuantRegModel)
     optimizer = Gurobi.Optimizer()
     lp = direct_model(optimizer)
     
@@ -131,7 +145,12 @@ function fitgurobi(model::QuantRegModel)
     β = value.(β)
     μ = value.(v) - value.(u)
     d = dual.(feas) .+ 0.5
-    print(d)
-    mfit = QuantRegFit(true, β, μ, d, y - μ)
-    QuantRegModel(model, mfit)
+    
+    model.fit.computed = true
+    model.fit.coef = β
+    model.fit.resid = μ
+    model.fit.dual = d
+    model.fit.yhat = y - μ
+
+    model
 end
