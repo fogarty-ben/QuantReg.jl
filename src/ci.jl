@@ -29,8 +29,8 @@ Write CI results to a model.
 function write_ci!(model::QuantRegModel, ci::Array{Float64, 2}, tnmat::Array{Float64, 2},
                    cutoff::Float64)
     if model.inf.interpolate
-        model.inf.lowerci = ci[2,:] .- (abs.(ci[1,:] .- ci[2,:]) .* (cutoff .- abs.(tnmat[2,:]))) ./ abs.(tnmat[1,:] .- tnmat[2,:])
-        model.inf.upperci = ci[3,:] .+ (abs.(ci[4,:] .- ci[3,:]) .* (cutoff .- abs.(tnmat[3,:]))) ./ abs.(tnmat[4,:] .- tnmat[3,:])
+        model.inf.lowerci = ci[2:2,:] .- (abs.(ci[1:1,:] .- ci[2:2,:]) .* (cutoff .- abs.(tnmat[2:2,:]))) ./ abs.(tnmat[1:1,:] .- tnmat[2:2,:])
+        model.inf.upperci = ci[3:3,:] .+ (abs.(ci[4:4,:] .- ci[3:3,:]) .* (cutoff .- abs.(tnmat[3:3,:]))) ./ abs.(tnmat[4:4,:] .- tnmat[3:3,:])
     else
         model.inf.lowerci = ci[1:2, :]
         model.inf.upperci = ci[3:4, :]

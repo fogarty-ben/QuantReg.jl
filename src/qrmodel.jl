@@ -53,25 +53,53 @@ struct QuantRegModel <: StatisticalModel
     inf::QuantRegInf
 end
 
-# update default constructor
-function QuantRegModel(formula, data; τ::Number=0.5, method::String="br", exact=false,
-                       α=0.05, hs=true, iid=true, interp=true, tcrit=true)
+function QuantRegModel(formula::FormulaTerm, data::DataFrame, τ::Number;
+                       method::String="br", exact::Union{Nothing, Bool}=nothing,
+                       α::Number=0.05, hs::Bool=true, iid::Union{Nothing, Bool}=nothing,
+                       interpolate::Bool=true, tcrit::Bool=true)
     formula = apply_schema(formula, schema(formula, data),
                                        QuantRegModel)
     mf = ModelFrame(formula, data)
     mm = ModelMatrix(mf)
+    if exact == nothing
+        if size(mm.m)[1] <= 1000
+            exact = true
+        else
+            exact = false
+        end
+    end
+    if iid == nothing
+        if exact
+            iid = true
+        else
+            iid = false
+        end
+    end
     mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
-    minf = QuantRegInf(false, exact, α, hs, iid, interp, tcrit,
+    minf = QuantRegInf(false, exact, α, hs, iid, interpolate, tcrit,
                        nothing, nothing, nothing, nothing, nothing)
     QuantRegModel(formula, data, mf, mm, τ, method, mfit, minf)
 end
 
-# update handling inference
 function QuantRegModel(model::QuantRegModel, τ::Number)
     mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
+    minf = minf = QuantRegInf(false, model.inf.exact, model.inf.α, model.inf.hs,
+                              model.inf.iid, model.inf.interpolate, model.tcrit,
+                              nothing, nothing, nothing, nothing, nothing)
     QuantRegModel(model.formula, model.data, model.mf, model.mm,
-                  τ, model.method, mfit, model.inf)
+                  τ, model.method, mfit, minf)
 end
+
+""" Think about redoing inference with different alpha value or different specs
+function QuantRegModel(model::QuantRegModel, α::Number)
+    mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
+    minf = minf = QuantRegInf(false, model.inf.exact, model.inf.α, model.inf.hs,
+                              model.inf.iid, model.inf.interpolate, model.tcrit,
+                              nothing, nothing, nothing, nothing, nothing)
+    QuantRegModel(model.formula, model.data, model.mf, model.mm,
+                  τ, model.method, mfit, minf)
+end
+"""
 
 function copy(model::QuantRegModel)
     mfit = QuantRegFit(model.fit.computed, model.fit.coef, model.fit.resid, model.fit.dual,
@@ -206,24 +234,28 @@ Base.getindex(X::QuantRegModels, i) = X.models[i]
 Base.append!(X::QuantRegModels, model::QuantRegModel) = setindex!(X.models, model, model.τ)
 taus(X::QuantRegModels) = keys(X.models)
 
-function rq(formula::FormulaTerm, data::DataFrame; τ::Union{Number, Array{Float64, 1}}=0.5) #something weird here with \tau
+function rq(formula::FormulaTerm, data::DataFrame; kargs...) #something weird here with \tau
+    kwargs = Dict(kargs)
+    τ = pop!(kwargs, :τ, 0.5)
     if typeof(τ) <: Number
-        model = QuantRegModel(formula, data; τ=τ)
+        model = QuantRegModel(formula, data, τ; kwargs...)
         fit!(model)
         compute_inf!(model)
         model
-    else
+    elseif typeof(τ) <: Array
         if length(τ) == 0
             error("No τ values specified.")
         end
         models = QuantRegModels()
         for tau in τ
-            model = QuantRegModel(formula, data; τ=tau)
+            model = QuantRegModel(formula, data, tau; kwargs...)
             fit!(model)
             compute_inf!(model)
             append!(models, model)
         end
         models
+    else
+        error("Invalid τ specification.")
     end
 end
 

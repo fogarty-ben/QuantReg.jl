@@ -12,6 +12,8 @@ function fit!(model::QuantRegModel)
             fitbr!(model)
         elseif model.method == "gurobi"
             fitgurobi!(model)
+        else
+            @error("Fitting method " * model.method * " unsupported.")
         end
         model.fit.computed = true
         model
@@ -125,7 +127,7 @@ end
 Fit quantile regresion model using 
 """
 function fitgurobi!(model::QuantRegModel)
-    optimizer = Optimizer()
+    optimizer = Gurobi.Optimizer(OutputFlag=0)
     lp = direct_model(optimizer)
     
     X = model.mm.m
