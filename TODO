@@ -4,9 +4,9 @@
   - Rank-BR: complete
   - Writing inference back to model (Complete)
 - Gurobi fit implementation: Complete
-- Functional-style models (1)
-- Coef. table/output (2)
-- Other solving methods from Kronker (3)
-- Clean-up (6)
-- Simulation code (5)
-- Documentation/Readme (7)
+- Functional-style models (1) (~ 1hr)
+- Coef. table/output (2) (~ 2.5 hrs)
+- Other solving methods from Kronker (3) (~ 2hrs)
+- Clean-up (6) (~ 2hrs start simulation first)
+- Simulation code (5) (~ 2hrs)
+- Documentation/Readme (7) (~6 hrs run simulations first)
