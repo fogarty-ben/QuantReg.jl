@@ -1,4 +1,3 @@
-using LinearAlgebra, Distributions, Statistics, Gurobi, JuMP
 const rqbrlib = joinpath(@__DIR__, "FORTRAN/rqbr.dylib")
 
 """
@@ -10,16 +9,18 @@ function fit!(model::QuantRegModel)
     if !model.fit.computed & 0 <= model.τ <= 1
         fitfxn = nothing
         if model.method == "br"
-            fittedmodel = fitbr!(model)
+            fitbr!(model)
         elseif model.method == "gurobi"
-            fittedmodel = fitgurobi!(model)
+            fitgurobi!(model)
         end
-        fittedmodel
+        model.fit.computed = true
+        model
     elseif model.τ < 0 | model.τ > 1
         error("Error: τ must be in [0, 1]")
     else
-        model
+        @warn("Model already fitted.")
     end
+    model
 end
 
 fit(model::QuantRegModel) = fit!(copy(model))
@@ -58,7 +59,6 @@ function fitbr!(model::QuantRegModel; ci=false)
         qn = zeros(k)
         cutoff = 0
     end
-    print(qn)
     β, μ, d, confint, tnmat = fitbrfortran(n, k, X, y, model.τ, nsol, ndsol, qn, cutoff,
                                            lci1)
     
@@ -116,17 +116,16 @@ function fitbrfortran(n, k, X, y, τ, nsol, ndsol, qn, cutoff, lci1)
            Ptr{Float64}, Ptr{Float64}, Ref{Float64}, Ref{Int32}),
           n, k, n + 5, k + 3, k + 4, X, y, τ, tol, ift, β, μ, s, wa, wb, nsol, ndsol, sol,
           dsol, lsol, h, qn, cutoff, ci, tnmat, big, lci1)
-    print(ci)
     β, μ, dsol, ci, tnmat
 end
 
 """
     fitgurobi(model) 
 
-Fit quantile regresion model using Gurobi.
+Fit quantile regresion model using 
 """
 function fitgurobi!(model::QuantRegModel)
-    optimizer = Gurobi.Optimizer()
+    optimizer = Optimizer()
     lp = direct_model(optimizer)
     
     X = model.mm.m

@@ -1,7 +1,5 @@
-using DataFrames, StatsBase, StatsModels, SparseArrays
-
 """
-    QuantRegResp
+    QuantRegFit
 
 Contains response from fitting a quantile regression model.
 """
@@ -13,6 +11,11 @@ mutable struct QuantRegFit
     yhat::Union{Vector, Nothing}
 end
 
+"""
+    QuantRegFit
+
+Contains specs and results of computing inference for a quantile regression model.
+"""
 mutable struct QuantRegInf
     computed::Bool
     exact::Bool
@@ -23,9 +26,9 @@ mutable struct QuantRegInf
     tcrit::Bool
     lowerci::Union{Nothing, Array{Number}}
     upperci::Union{Nothing, Array{Number}}
-    σ::Union{Nothing, Number}
-    t::Union{Nothing, Number}
-    p::Union{Nothing, Number}
+    σ::Union{Nothing, Array{Number}}
+    t::Union{Nothing, Array{Number}}
+    p::Union{Nothing, Array{Number}}
 end
 
 """
@@ -53,7 +56,8 @@ end
 # update default constructor
 function QuantRegModel(formula, data; τ::Number=0.5, method::String="br", exact=false,
                        α=0.05, hs=true, iid=true, interp=true, tcrit=true)
-    formula = apply_schema(formula, schema(formula, data), QuantRegModel)
+    formula = apply_schema(formula, schema(formula, data),
+                                       QuantRegModel)
     mf = ModelFrame(formula, data)
     mm = ModelMatrix(mf)
     mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
@@ -84,20 +88,142 @@ end
 
 implicit_intercept(::QuantRegModel) = true
 
-coef(model::QuantRegModel) = model.fit.computed ? model.fit.coef :
+# Clean this up
+StatsBase.coef(model::QuantRegModel) = model.fit.computed ? model.fit.coef :
                              error("Model hasn't been fit.")
-coefnames(model::QuantRegModel) = coefnames(model.mf)
-dof(model::QuantRegModel) = size(model.mm.m)[2]
-
-isfitted(model::QuantRegModel) = model.fit.computed
-islinear(::QuantRegModel) = true
-nobs(model::QuantRegModel) = size(model.mm.m)[1]
-stderr(model::QuantRegModel) = model.inf.computed & !model.inf.exact ? model.inf.σ :
-                               ["NA" for i=1:size(model.mm.m)[2]]
-fitted(model::QuantRegModel) = model.fit.computed ? model.fit.yhat :
+StatsBase.coefnames(model::QuantRegModel) = coefnames(model.mf)
+StatsBase.dof(model::QuantRegModel) = size(model.mm.m)[2]
+StatsBase.dof_residual(model::QuantRegModel) = size(model.mm.m)[1] - size(model.mm.m)[2]
+StatsBase.isfitted(model::QuantRegModel) = model.fit.computed
+StatsBase.islinear(::QuantRegModel) = true
+StatsBase.nobs(model::QuantRegModel) = size(model.mm.m)[1]
+StatsBase.stderr(model::QuantRegModel) = model.inf.computed ? (!model.inf.exact ? model.inf.σ :
+                               ["NA" for i=1:size(model.mm.m)[2]]) :
+                               error("Inference hasn't been computed")                            
+StatsBase.fitted(model::QuantRegModel) = model.fit.computed ? model.fit.yhat :
                                error("Model hasn't been fit.")
-modelmatrix(model::QuantRegModel) = model.mm
-response(model::QuantRegModel) = response(model.mf)
-responsename(model::QuantRegModel) = terms(model.formula)[1]
-residuals(model::QuantRegModel) = model.fit.computed ? model.fit.resid :
+StatsBase.modelmatrix(model::QuantRegModel) = model.mm
+StatsBase.response(model::QuantRegModel) = response(model.mf)
+StatsBase.responsename(model::QuantRegModel) = terms(model.formula)[1]
+StatsBase.residuals(model::QuantRegModel) = model.fit.computed ? model.fit.resid :
                                   error("Model hasn't been fit.")
+
+"""
+    coeftable(model::QuantRegModel)
+
+Generate a coefficient table from a QuantRegModel.
+"""
+function coeftable(model::QuantRegModel)
+    if !model.fit.computed
+        error("Model hasn't been fit.")
+    else
+        vals = hcat(model.fit.coef)
+        header = ["Estimate"]
+        if model.inf.computed & model.inf.exact
+            vals = hcat(vals, transpose(model.inf.lowerci), transpose(model.inf.upperci))
+            cistring = pyfmt("3.1d", (1 - model.inf.α) * 100)
+            if model.inf.interpolate
+                header = vcat(header, [cistring * "% Lower CI", cistring * "% Upper CI"])
+            else
+                header = vcat(header, [cistring * "% Lower CI", cistring* "% lower CI",
+                                      cistring * "% upper CI", cistring * "% Upper CI",])
+            end
+        elseif model.inf.computed & !model.inf.exact
+            vals = hcat(vals, model.inf.σ, model.inf.t, model.inf.p)
+            if model.inf.tcrit
+                header = vcat(header, ["Std. Error", "t", "P(>|t|)"])
+            else
+                header = vcat(header, ["Std. Error", "z", "P(>|z|)"])
+            end
+        end 
+    end
+    CoefTable(vals, header, coefnames(model))
+end
+
+"""
+    show(io::IO, model:QuantRegModel:: multiple::Bool=false)
+
+Display quantreg model.
+"""
+function Base.show(io::IO, model::QuantRegModel; multiple=false)
+    if !multiple
+        print(string(model.formula) * ", " * "τ=" * string(model.τ))
+    else
+        print("τ=" * string(model.τ))
+        if model.inf.computed & model.inf.exact
+            print(", α=" * string(model.inf.α))
+        end
+    end
+    print("\n")
+    if model.fit.computed
+        Base.show(io, coeftable(model))
+        if !multiple
+            dof_total = dof(model) + dof_residual(model)
+            println("\n\nDegrees of freedom: " * string(dof_total) * " total; " * 
+                    string(dof_residual(model)) * " residual")
+        end
+    else
+        print("Unfitted.")     
+    end
+end
+
+"""
+QuantRegModels(models::Dict)
+
+Wrapper for a dictionary containing multiple QuantRegModel at different quantiles.
+"""
+struct QuantRegModels
+    models::Dict
+end
+
+"""
+    show(io::IO, model:QuantRegModel:: multiple::Bool=false)
+
+Display quantreg model.
+"""
+function Base.show(io::IO, models::QuantRegModels)
+    headerprinted = false
+    for (τ, model) in models.models
+        println()
+        if !headerprinted
+            println(string(model.formula) * ", α=" * string(model.inf.α))
+            dof_total = dof(model) + dof_residual(model)
+            println("Degrees of freedom: " * string(dof_total) * " total; " * 
+            string(dof_residual(model)) * " residual")
+            headerprinted = true
+        end
+        println()
+        show(io, model, multiple=true)
+    end
+
+end
+
+function QuantRegModels()
+    QuantRegModels(Dict())
+end
+
+Base.getindex(X::QuantRegModels, i) = X.models[i]
+Base.append!(X::QuantRegModels, model::QuantRegModel) = setindex!(X.models, model, model.τ)
+taus(X::QuantRegModels) = keys(X.models)
+
+function rq(formula::FormulaTerm, data::DataFrame; τ::Union{Number, Array{Float64, 1}}=0.5) #something weird here with \tau
+    if typeof(τ) <: Number
+        model = QuantRegModel(formula, data; τ=τ)
+        fit!(model)
+        compute_inf!(model)
+        model
+    else
+        if length(τ) == 0
+            error("No τ values specified.")
+        end
+        models = QuantRegModels()
+        for tau in τ
+            model = QuantRegModel(formula, data; τ=tau)
+            fit!(model)
+            compute_inf!(model)
+            append!(models, model)
+        end
+        models
+    end
+end
+

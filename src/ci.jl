@@ -1,5 +1,3 @@
-using Distributions, StatsModels, LinearAlgebra, GLM
-
 """
     calcbandwidth(τ, n, hs=false)
 
@@ -34,8 +32,8 @@ function write_ci!(model::QuantRegModel, ci::Array{Float64, 2}, tnmat::Array{Flo
         model.inf.lowerci = ci[2,:] .- (abs.(ci[1,:] .- ci[2,:]) .* (cutoff .- abs.(tnmat[2,:]))) ./ abs.(tnmat[1,:] .- tnmat[2,:])
         model.inf.upperci = ci[3,:] .+ (abs.(ci[4,:] .- ci[3,:]) .* (cutoff .- abs.(tnmat[3,:]))) ./ abs.(tnmat[4,:] .- tnmat[3,:])
     else
-        model.inf.lowerci = ci[1:2,:]
-        model.inf.upperci = ci[3:4,:]
+        model.inf.lowerci = ci[1:2, :]
+        model.inf.upperci = ci[3:4, :]
     end
 end
 
@@ -50,7 +48,7 @@ function compute_inf!(model::QuantRegModel)
     elseif model.inf.computed
         return model
     elseif model.inf.exact
-        model = fitbr!(model; ci=true)
+        fitbr!(model; ci=true)
     else
         if model.inf.iid
             σ = compute_inf_asy_iid(model)
@@ -61,9 +59,10 @@ function compute_inf!(model::QuantRegModel)
         model.inf.t = model.fit.coef ./ model.inf.σ
         n, k = size(model.mm)
         dist = TDist(n - k)
-        model.inf.p = 2 * (1 - cdf(dist, model.inf.t))
+        model.inf.p = 2 .* (1 .- cdf.(dist, abs.(model.inf.t)))
     end
     model.inf.computed = true
+    model
 end  
 
 compute_inf(model::QuantRegModel) = compute_inf!(copy(model))
