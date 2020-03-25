@@ -50,6 +50,7 @@ struct QuantRegModel <: StatisticalModel
     inf::QuantRegInf
 end
 
+# update default constructor
 function QuantRegModel(formula, data; τ::Number=0.5, method::String="br", rankscore=false,
                        α=0.05, hs=true, iid=true, interp=true, tcrit=true)
     formula = apply_schema(formula, schema(formula, data), QuantRegModel)
@@ -61,20 +62,27 @@ function QuantRegModel(formula, data; τ::Number=0.5, method::String="br", ranks
     QuantRegModel(formula, data, mf, mm, τ, method, mfit, minf)
 end
 
-function QuantRegModel(model::QuantRegModel, mfit::QuantRegFit)
-    QuantRegModel(model.formula, model.data, model.mf, model.mm,
-                  model.τ, model.method, mfit, model.inf)
-end
-
-function QuantRegModel(model::QuantRegModel, minf::QuantRegInf)
-    QuantRegModel(model.formula, model.data, model.mf, model.mm,
-                  model.τ, model.method, model.fit, minf)
-end
-
+# update handling inference
 function QuantRegModel(model::QuantRegModel, τ::Number)
     mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
     QuantRegModel(model.formula, model.data, model.mf, model.mm,
                   τ, model.method, mfit, model.inf)
 end
 
+function copy(model::QuantRegModel)
+    mfit = QuantRegFit(model.fit.computed, model.fit.coef, model.fit.resid, model.fit.dual,
+                       model.fit.yhat)
+    minf = QuantRegInf(model.inf.computed, model.inf.rankscore, model.inf.α, model.inf.hs,
+                       model.inf.iid, model.inf.interpolate, model.inf.tcrit,
+                       model.inf.lowerci, model.inf.upperci, model.inf.σ, model.inf.t,
+                       model.inf.p)
+    mframe = ModelFrame(model.formula, model.data, QuantRegModel)
+    mmatrix = ModelMatrix(mframe)
+    QuantRegModel(model.formula, model.data, mframe, mmatrix, model.τ, model.method, mfit,
+                  minf)
+end
+
 implicit_intercept(::QuantRegModel) = true
+
+#coef(model::QuantRegModel) = model.fit.coef
+#coefnames(model)

@@ -66,6 +66,8 @@ function compute_inf!(model::QuantRegModel)
     model.inf.computed = true
 end  
 
+compute_inf(model::QuantRegModel) = compute_inf!(copy(model))
+
 """
     compute_rs_nid_qn(i::Integer, data::DataFrame, regressors::Array{Term},
                       weights::Array{Float64})
