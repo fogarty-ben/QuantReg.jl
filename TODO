@@ -5,10 +5,9 @@
   - Writing inference back to model: complete
 - Gurobi fit implementation: complete
 - Functional-style models: complete
-- Coef. table/output: in-progress, need to switch using to import, debug, and format output
-  (~ 2.5 hrs)
+- Coef. table/output: complete
 - Test w/ missing data (1) (~1 hr)
-- Other solving methods from Kronker (2) (~ 2hrs)
+- Other solving methods from Kronker: complete
 - Clean-up (4) (~ 2hrs start simulation first)
 - Simulation code (3) (~ 2hrs)
 - Documentation/Readme (5) (~6 hrs run simulations first)
