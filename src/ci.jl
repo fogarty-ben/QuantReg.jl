@@ -29,8 +29,12 @@ Write CI results to a model.
 function write_ci!(model::QuantRegModel, ci::Array{Float64, 2}, tnmat::Array{Float64, 2},
                    cutoff::Float64)
     if model.inf.interpolate
-        model.inf.lowerci = ci[2:2,:] .- (abs.(ci[1:1,:] .- ci[2:2,:]) .* (cutoff .- abs.(tnmat[2:2,:]))) ./ abs.(tnmat[1:1,:] .- tnmat[2:2,:])
-        model.inf.upperci = ci[3:3,:] .+ (abs.(ci[4:4,:] .- ci[3:3,:]) .* (cutoff .- abs.(tnmat[3:3,:]))) ./ abs.(tnmat[4:4,:] .- tnmat[3:3,:])
+        model.inf.lowerci = ci[2:2,:] .- (abs.(ci[1:1,:] .- ci[2:2,:]) .* 
+                            (cutoff .- abs.(tnmat[2:2,:]))) ./ abs.(tnmat[1:1,:] .-
+                             tnmat[2:2,:])
+        model.inf.upperci = ci[3:3,:] .+ (abs.(ci[4:4,:] .- ci[3:3,:]) .* 
+                            (cutoff .- abs.(tnmat[3:3,:]))) ./ abs.(tnmat[4:4,:] .- 
+                             tnmat[3:3,:])
     else
         model.inf.lowerci = ci[1:2, :]
         model.inf.upperci = ci[3:4, :]
@@ -68,13 +72,13 @@ end
 compute_inf(model::QuantRegModel) = compute_inf!(copy(model))
 
 """
-    compute_rs_nid_qn(i::Integer, data::DataFrame, regressors::Array{Term},
+    compute_exact_nid_qn(i::Integer, data::DataFrame, regressors::Array{Term},
                       weights::Array{Float64})
 
 Computes residuals variances from the projection of each column of X on remaining columns
 for exact inference under the n.i.d. assumption.
 """
-function compute_rs_nid_qn(i, data, regressors, weights)
+function compute_exact_nid_qn(i, data, regressors, weights)
     model = lm(regressors[i] ~ foldl(+, vcat([ConstantTerm(0)], regressors[Not(i)])), data,
                wts=weights)
     resid = residuals(model)
@@ -82,11 +86,11 @@ function compute_rs_nid_qn(i, data, regressors, weights)
 end
 
 """
-    compute_inf_rankscore(model, hs)
+    compute_inf_exact(model, hs)
 
 Compute inference for a quantile regression model under iid assumption.
 """
-function compute_inf_rs(model::QuantRegModel)
+function compute_inf_exact(model::QuantRegModel)
     X = model.mm.m
     n, k = size(X)
     if k == 1
@@ -120,7 +124,7 @@ function compute_inf_rs(model::QuantRegModel)
         regressors = filter(x -> (x != ConstantTerm(-1)) & (x != ConstantTerm(0)),
                             terms(model.formula)[2:end])
         enum_regressors = convert(Array{Integer}, [1:1:length(regressors);])
-        qn = map(i -> compute_rs_nid_qn(i, model.data, regressors, f), enum_regressors) 
+        qn = map(i -> compute_exact_nid_qn(i, model.data, regressors, f), enum_regressors) 
     end
     return lci1, qn, cutoff
 end
