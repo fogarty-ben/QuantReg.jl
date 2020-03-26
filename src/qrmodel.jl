@@ -84,25 +84,48 @@ function QuantRegModel(formula::FormulaTerm, data::DataFrame, τ::Number;
     QuantRegModel(formula, data, mf, mm, τ, method, mfit, minf)
 end
 
-function QuantRegModel(model::QuantRegModel, τ::Number)
-    mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
-    minf = minf = QuantRegInf(false, model.inf.exact, model.inf.α, model.inf.hs,
-                              model.inf.iid, model.inf.interpolate, model.inf.tcrit,
-                              nothing, nothing, nothing, nothing, nothing)
-    QuantRegModel(model.formula, model.data, model.mf, model.mm,
-                  τ, model.method, mfit, minf)
+function QuantRegModel(model::QuantRegModel; τ::Union{Nothing, Number}=nothing,
+                       method::Union{Nothing, String}=nothing,
+                       exact::Union{Nothing, Bool}=nothing,
+                       α::Union{Nothing, Number}=nothing, hs::Union{Nothing, Bool}=nothing,
+                       iid::Union{Nothing, Bool}=nothing,
+                       interpolate::Union{Nothing, Bool}=nothing,
+                       tcrit::Union{Nothing, Bool}=nothing)
+    fitchanged = any(map(x -> x != nothing, [τ, method]))
+    infchanged = any(map(x -> x != nothing, [exact, α, hs, iid, interpolate, tcrit]))
+    if fitchanged
+        mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
+        minf = QuantRegInf(false,
+                           exact == nothing ? model.inf.exact : exact,
+                           α == nothing ? model.inf.α : α,
+                           hs == nothing ? model.inf.hs : hs,
+                           iid == nothing ? model.inf.iid : iid,
+                           interpolate == nothing ? model.inf.interpolate : interpolate,
+                           tcrit == nothing ? model.inf.tcrit : tcrit,
+                           nothing, nothing, nothing, nothing, nothing)
+        newmodel = QuantRegModel(model.formula, model.data, model.mf, model.mm,
+                                 τ == nothing ? model.τ : τ,
+                                 method == nothing ? model.method : method,
+                                 mfit, minf)
+    elseif infchanged
+        minf = QuantRegInf(false,
+                           exact == nothing ? model.inf.exact : exact,
+                           α == nothing ? model.inf.α : α,
+                           hs == nothing ? model.inf.hs : hs,
+                           iid == nothing ? model.inf.iid : iid,
+                           interpolate == nothing ? model.inf.interpolate : interpolate,
+                           tcrit == nothing ? model.inf.tcrit : tcrit,
+                           nothing, nothing, nothing, nothing, nothing)
+        newmodel = QuantRegModel(model.formula, model.data, model.mf, model.mm,
+                                 τ == nothing ? model.τ : τ,
+                                 method == nothing ? model.method : method,
+                                 model.fit, minf)
+    else
+        newmodel = copy(model)
+    end
+    
+    newmodel
 end
-
-""" Think about redoing inference with different alpha value or different specs
-function QuantRegModel(model::QuantRegModel, α::Number)
-    mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
-    minf = minf = QuantRegInf(false, model.inf.exact, model.inf.α, model.inf.hs,
-                              model.inf.iid, model.inf.interpolate, model.tcrit,
-                              nothing, nothing, nothing, nothing, nothing)
-    QuantRegModel(model.formula, model.data, model.mf, model.mm,
-                  τ, model.method, mfit, minf)
-end
-"""
 
 function copy(model::QuantRegModel)
     mfit = QuantRegFit(model.fit.computed, model.fit.coef, model.fit.resid, model.fit.dual,
@@ -268,4 +291,3 @@ function rq(formula::FormulaTerm, data::DataFrame; kargs...)
         error("Invalid τ specification.")
     end
 end
-
