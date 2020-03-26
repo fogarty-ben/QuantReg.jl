@@ -142,7 +142,6 @@ end
 
 implicit_intercept(::QuantRegModel) = true
 
-# Clean this up
 StatsBase.coef(model::QuantRegModel) = model.fit.computed ? model.fit.coef :
                              error("Model hasn't been fit.")
 StatsBase.coefnames(model::QuantRegModel) = coefnames(model.mf)
