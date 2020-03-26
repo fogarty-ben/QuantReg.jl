@@ -147,8 +147,8 @@ function compute_inf_asy_iid(model::QuantRegModel)
     residorder = sort(resid[sortperm(abs.(resid))][ir])
     xt = ir/(n-k)
     df = DataFrame(residorder=residorder, xt=xt)
-    auxmodel = QuantRegModel(@formula(residorder ~ xt), df)
-    auxmodel = fit(auxmodel)
+    auxmodel = QuantRegModel(@formula(residorder ~ xt), df, 0.5)
+    fit!(auxmodel)
     sparsity = auxmodel.fit.coef[2]
     cov = sparsity^2 * fnorminv * model.τ * (1 - model.τ)
     scale = 1/sparsity

@@ -87,7 +87,7 @@ end
 function QuantRegModel(model::QuantRegModel, τ::Number)
     mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
     minf = minf = QuantRegInf(false, model.inf.exact, model.inf.α, model.inf.hs,
-                              model.inf.iid, model.inf.interpolate, model.tcrit,
+                              model.inf.iid, model.inf.interpolate, model.inf.tcrit,
                               nothing, nothing, nothing, nothing, nothing)
     QuantRegModel(model.formula, model.data, model.mf, model.mm,
                   τ, model.method, mfit, minf)

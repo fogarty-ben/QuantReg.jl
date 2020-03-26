@@ -63,11 +63,12 @@ function fitbr!(model::QuantRegModel; ci=false)
     end
     β, μ, d, confint, tnmat, flag = fitbrfortran(n, k, X, y, model.τ, nsol, ndsol, qn,
                                                  cutoff, lci1)
+    if flag[1] != 0
+        @warn("Solution may be non-unique. See " *
+              "http://www.econ.uiuc.edu/~roger/research/rq/FAQ #1/2.")
+    end
     
     if !ci
-        if flag[1] != 0
-            @warn("Solution may be non-unique.")
-        end
         model.fit.computed = true
         model.fit.coef = β
         model.fit.resid = μ
@@ -146,10 +147,10 @@ function fitgurobi!(model::QuantRegModel)
         add_to_expression!(exp, (1 - model.τ), v[i])
     end
     @objective(lp, Min, exp)
-    @constraint(lp, feas[i=1:n], sum(X[i, j] * β[j] for j in 1:k) - u[i] + v[i] == y[i])
+    @constraint(lp, feas[i=1:n], sum(X[i, j] * β[j] for j in 1:k) + u[i] - v[i] == y[i])
     optimize!(lp)
     β = value.(β)
-    μ = value.(v) - value.(u)
+    μ = value.(u) - value.(v)
     d = dual.(feas) .+ 0.5
     
     model.fit.computed = true
@@ -193,9 +194,8 @@ function fitfn!(model::QuantRegModel)
     end
     model.fit.computed = true
     model.fit.coef = -1 .* wp[:, 1]
-    model.fit.resid = μ
-    model.fit.dual = dsol
-    model.fit.yhat = response(model.mf) - μ
+    model.fit.yhat = model.mm.m * model.fit.coef
+    model.fit.resid = response(model.mf) - model.fit.yhat
 
     model
 end
