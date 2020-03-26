@@ -2,11 +2,11 @@ const rqbrlib = joinpath(@__DIR__, "FORTRAN/rqbr.dylib")
 const rqfnblib = joinpath(@__DIR__, "FORTRAN/rqfnb.dylib")
 
 """
-    fit(model)
+    fit!(model::QuantRegModel)
 
-Fit a quantile regression model.
+In-place version of `[fit(model)]`.
 """
-function fit!(model::QuantRegModel)
+function StatsBase.fit!(model::QuantRegModel)
     if !model.fit.computed & 0 <= model.τ <= 1
         fitfxn = nothing
         if model.method == "br"
@@ -28,53 +28,57 @@ function fit!(model::QuantRegModel)
     model
 end
 
+"""
+    fit(model::QuantRegModel)
+
+Fit `model` according to `model.method`.
+"""
 fit(model::QuantRegModel) = fit!(copy(model))
 
 """
-    fitbr(model, α=0.5, ci=false, iid=true, interp=true, tcrit=true), 
+    fitbr!(model::QuantRegModel; ci::Bool=false), 
 
-Fit quantile regresion model using the Barrodale-Roberts method.
+Fit `model` using the Barrodale-Roberts method.
 
-# Arguments
-- `model`: QuantRegModel to fit
-- `α`: test size,
-- `ci`: calculate confidence intervals with rank inversion
-- `iid`: whether to pase rank inversion on an i.i.d. error model
-- `interp`: iterpolate discrete rank order ci
-- `tcrit`: use student's t dist for crit values (as opposed to normal dist)
+If ci is false, `model.fit` is updated in place to reflect the fit produced by running the
+Barrodale-Roberts simplex, and confidence intervals are not computed. Otherwise, confidence
+intervals are computed, and `model.inf` is updated in place to reflect the confidence
+invervals produced by this method, but `model.fit` is not updated.
+
+This fitting method leverages public domain FORTRAN code written by Roger Koenker for the R
+`quantreg` package.
 """
 function fitbr!(model::QuantRegModel; ci=false)
-    big = prevfloat(Inf)
-    X = model.mm.m
-    y = response(model.mf)
-    n, k = size(X)
-    if rank(X) != k
+    big = prevfloat(Inf) 
+    n, k = size(model.mm.m)
+    if rank(model.mm.m) != k
         error("Fitting error: singular design matrix.")
     end
-    ny = size(y)[1]
-    nsol = 2
-    ndsol = 2
+    nsol = 2 # guess for primal solution row dimension
+    ndsol = 2 # guess for dual solution row dimension
     if ci
+        # Initialize values needed to calculate confidence intervals
         lci1, qn, cutoff = init_ci_invers(model)
     else
+        # Dummy values if not calculating confidence intervals
         lci1 = false
         qn = zeros(k)
         cutoff = 0
     end
-    β, μ, d, confint, tnmat, flag = fitbrfortran(n, k, X, y, model.τ, nsol, ndsol, qn,
-                                                 cutoff, lci1)
+    β, μ, d, confint, tnmat, flag = fitbrfortran(n, k, model.mm.m, response(model.mf),
+                                                 model.τ, nsol, ndsol, qn, cutoff, lci1)
     if flag[1] != 0
         @warn("Solution may be non-unique. See " *
               "http://www.econ.uiuc.edu/~roger/research/rq/FAQ #1/2.")
     end
     
-    if !ci
+    if !ci # update model.fit
         model.fit.computed = true
         model.fit.coef = β
         model.fit.resid = μ
         model.fit.dual = d
-        model.fit.yhat = y - μ
-    else
+        model.fit.yhat = response(model.mf) - μ
+    else # update model.inf
         write_ci!(model, confint, tnmat, cutoff)
     end
 
@@ -82,6 +86,8 @@ function fitbr!(model::QuantRegModel; ci=false)
 end
 
 """
+Need to update from here down.
+
     fitbrfortran()
 
 Call rqbr RATFOR code.
@@ -98,7 +104,9 @@ Call rqbr RATFOR code.
 - `cutoff`: the critical point for testing
 - `lci1`: whether to calculate CI
 """
-function fitbrfortran(n, k, X, y, τ, nsol, ndsol, qn, cutoff, lci1)
+function fitbrfortran(n::Integer, k::Integer, X::Matrix{Number}, y::Vector{Number},
+                      τ::Number, nsol::Integer, ndsol::Integer, qn::Vector{Number},
+                      cutoff::Number, lci1::Bool)
     tol = eps()^(2/3) # floating point tolerance
     ift = [1]
     β = zeros(k)
@@ -122,7 +130,8 @@ function fitbrfortran(n, k, X, y, τ, nsol, ndsol, qn, cutoff, lci1)
            Ptr{Float64}, Ptr{Float64}, Ref{Float64}, Ref{Int32}),
           n, k, n + 5, k + 3, k + 4, X, y, τ, tol, ift, β, μ, s, wa, wb, nsol, ndsol, sol,
           dsol, lsol, h, qn, cutoff, ci, tnmat, big, lci1)
-    β, μ, dsol, ci, tnmat, ift
+    
+          β, μ, dsol, ci, tnmat, ift
 end
 
 """
