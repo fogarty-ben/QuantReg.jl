@@ -55,7 +55,7 @@ function fitbr!(model::QuantRegModel; ci=false)
     nsol = 2
     ndsol = 2
     if ci
-        lci1, qn, cutoff = compute_inf_exact(model)
+        lci1, qn, cutoff = init_ci_invers(model)
     else
         lci1 = false
         qn = zeros(k)

@@ -27,7 +27,7 @@ mutable struct QuantRegInf
     lowerci::Union{Nothing, Array{Number}}
     upperci::Union{Nothing, Array{Number}}
     σ::Union{Nothing, Array{Number}}
-    t::Union{Nothing, Array{Number}}
+    teststatistic::Union{Nothing, Array{Number}}
     p::Union{Nothing, Array{Number}}
 end
 
@@ -182,7 +182,7 @@ function coeftable(model::QuantRegModel)
                                       cistring * "% CI upper", cistring * "% Upper",])
             end
         elseif model.inf.computed & !model.inf.exact
-            vals = hcat(vals, model.inf.σ, model.inf.t, model.inf.p)
+            vals = hcat(vals, model.inf.σ, model.inf.teststatistic, model.inf.p)
             if model.inf.tcrit
                 header = vcat(header, ["Std. Error", "t", "P(>|t|)"])
             else
