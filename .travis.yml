@@ -3,4 +3,23 @@ julia:
   - 1.4.0
 
 env:
-  GUROBI_JL_SKIP_LIB_CHECK=1
+  global:
+    - GUROBI_JL_SKIP_LIB_CHECK=1
+    - TRAVIS_CI=1
+
+jobs:
+  include:
+    - stage:
+      julia: 1.4.0
+      os: linux
+      script:
+        - julia --check-bounds=yes --color=yes -e 'using Pkg; Pkg.test(coverage=true);'
+
+    - stage: "Documentation"
+      julia: 1.4.0
+      os: linux
+      script:
+        - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
+                                    Pkg.instantiate();'
+        - julia --project=docs/ docs/make.jl
+      after_success: skip

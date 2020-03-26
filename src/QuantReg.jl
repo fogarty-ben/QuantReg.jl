@@ -1,7 +1,11 @@
 module QuantReg
 
-using DataFrames, Distributions, Format, GLM, Gurobi, JuMP, LinearAlgebra, StatsBase, StatsModels,
+using DataFrames, Distributions, Format, GLM, JuMP, LinearAlgebra, StatsBase, StatsModels,
        Statistics
+
+if !haskey(ENV, "TRAVIS_CI")
+    using Gurobi
+end
 
 export coef, coefnames, coeftable, dof, dof_residual, fitted, @formula, isfitted, islinear,
        nobs, modelmatrix, response, responsename, residuals

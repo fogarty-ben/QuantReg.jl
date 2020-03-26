@@ -140,35 +140,37 @@ end
 Fit quantile regresion model using Gurobi.
 """
 function fitgurobi!(model::QuantRegModel)
-    optimizer = Gurobi.Optimizer(OutputFlag=0)
-    lp = direct_model(optimizer)
-    
-    X = model.mm.m
-    y = response(model.mf)
-    n, k = size(X)
+    if !haskey(ENV, "TRAVIS_CI")
+        optimizer = Gurobi.Optimizer(OutputFlag=0)
+        lp = direct_model(optimizer)
+        
+        X = model.mm.m
+        y = response(model.mf)
+        n, k = size(X)
 
-    @variable(lp, β[1:k])
-    @variable(lp, u[1:n] >= 0)
-    @variable(lp, v[1:n] >= 0)
-    exp = AffExpr(0)
-    for i in 1:n
-        add_to_expression!(exp, model.τ, u[i])
-        add_to_expression!(exp, (1 - model.τ), v[i])
+        @variable(lp, β[1:k])
+        @variable(lp, u[1:n] >= 0)
+        @variable(lp, v[1:n] >= 0)
+        exp = AffExpr(0)
+        for i in 1:n
+            add_to_expression!(exp, model.τ, u[i])
+            add_to_expression!(exp, (1 - model.τ), v[i])
+        end
+        @objective(lp, Min, exp)
+        @constraint(lp, feas[i=1:n], sum(X[i, j] * β[j] for j in 1:k) + u[i] - v[i] == y[i])
+        optimize!(lp)
+        β = value.(β)
+        μ = value.(u) - value.(v)
+        d = dual.(feas) .+ 0.5
+        
+        model.fit.computed = true
+        model.fit.coef = β
+        model.fit.resid = μ
+        model.fit.dual = d
+        model.fit.yhat = y - μ
+
+        model
     end
-    @objective(lp, Min, exp)
-    @constraint(lp, feas[i=1:n], sum(X[i, j] * β[j] for j in 1:k) + u[i] - v[i] == y[i])
-    optimize!(lp)
-    β = value.(β)
-    μ = value.(u) - value.(v)
-    d = dual.(feas) .+ 0.5
-    
-    model.fit.computed = true
-    model.fit.coef = β
-    model.fit.resid = μ
-    model.fit.dual = d
-    model.fit.yhat = y - μ
-
-    model
 end
 
 """
@@ -179,7 +181,7 @@ Fit model using Frish-Newton algorithm.
 function fitfn!(model::QuantRegModel)
     ϵ = eps()^(1/2)
     if model.τ < ϵ || model.τ > 1- ϵ
-        error("Ccannot use Barrodale-Roberts method for τ extremely close to 0 or 1.")
+        error("Cannot use Barrodale-Roberts method for τ extremely close to 0 or 1.")
     end
     n, k = size(model.mm.m)
     a = convert(Array, transpose(model.mm.m))
