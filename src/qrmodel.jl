@@ -39,7 +39,10 @@ Quantile Regression model at the τth percentile fitting `data` according to `fo
 
 The default method is the Barrodale-Roberts simplex (`"br"`) written by Roger Kronker. Other
 available methods include:
-- `"br"``: Fit using Barrodlae-Roberts simplex (FORTRAN code written by Roger Kronker)
+- `"br"`: Fit using Barrodlae-Roberts simplex (FORTRAN code originally pary of R quantreg
+package)
+- `"fn"``: Fit using Frisch-Newton algorithm (FORTRAN code originally part of R quantreg
+package)
 - `"gurobi"``: Fit using Gurobi
 """
 struct QuantRegModel <: StatisticalModel

@@ -89,6 +89,9 @@ Compute inference for a quantile regression model under iid assumption.
 function compute_inf_rs(model::QuantRegModel)
     X = model.mm.m
     n, k = size(X)
+    if k == 1
+        error("Cannot compute exact inference for model with one predictor")
+    end
     lci1 = true
     if model.inf.tcrit
         dist = TDist(n - k)

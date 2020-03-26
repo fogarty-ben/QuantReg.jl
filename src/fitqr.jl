@@ -1,4 +1,5 @@
 const rqbrlib = joinpath(@__DIR__, "FORTRAN/rqbr.dylib")
+const rqfnblib = joinpath(@__DIR__, "FORTRAN/rqfnb.dylib")
 
 """
     fit(model)
@@ -12,12 +13,14 @@ function fit!(model::QuantRegModel)
             fitbr!(model)
         elseif model.method == "gurobi"
             fitgurobi!(model)
+        elseif model.method == "fn"
+            fitfn!(model)
         else
             @error("Fitting method " * model.method * " unsupported.")
         end
         model.fit.computed = true
         model
-    elseif model.τ < 0 | model.τ > 1
+    elseif model.τ < 0 || model.τ > 1
         error("Error: τ must be in [0, 1]")
     else
         @warn("Model already fitted.")
@@ -46,14 +49,11 @@ function fitbr!(model::QuantRegModel; ci=false)
     y = response(model.mf)
     n, k = size(X)
     if rank(X) != k
-        error("Singular design matrix: cannot use Barrodale-Roberts method")
+        error("Fitting error: singular design matrix.")
     end
     ny = size(y)[1]
     nsol = 2
     ndsol = 2
-    if k == 1
-        error("Cannot compute exact inference for model with one predictor")
-    end
     if ci
         lci1, qn, cutoff = compute_inf_rs(model)
     else
@@ -61,10 +61,13 @@ function fitbr!(model::QuantRegModel; ci=false)
         qn = zeros(k)
         cutoff = 0
     end
-    β, μ, d, confint, tnmat = fitbrfortran(n, k, X, y, model.τ, nsol, ndsol, qn, cutoff,
-                                           lci1)
+    β, μ, d, confint, tnmat, flag = fitbrfortran(n, k, X, y, model.τ, nsol, ndsol, qn,
+                                                 cutoff, lci1)
     
     if !ci
+        if flag[1] != 0
+            @warn("Solution may be non-unique.")
+        end
         model.fit.computed = true
         model.fit.coef = β
         model.fit.resid = μ
@@ -96,7 +99,7 @@ Call rqbr RATFOR code.
 """
 function fitbrfortran(n, k, X, y, τ, nsol, ndsol, qn, cutoff, lci1)
     tol = eps()^(2/3) # floating point tolerance
-    ift = 1
+    ift = [1]
     β = zeros(k)
     μ = zeros(n)
     s = zeros(n)
@@ -112,19 +115,19 @@ function fitbrfortran(n, k, X, y, τ, nsol, ndsol, qn, cutoff, lci1)
 
     ccall(("rqbr_", rqbrlib), Cvoid,
           (Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32},
-           Ptr{Float64}, Ptr{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32}, Ptr{Float64},
+           Ptr{Float64}, Ptr{Float64}, Ref{Float64}, Ref{Float64}, Ptr{Int32}, Ptr{Float64},
            Ptr{Float64}, Ptr{Int32}, Ptr{Float64}, Ptr{Float64}, Ref{Int32}, Ref{Int32},
            Ptr{Float64}, Ptr{Float64}, Ref{Int32}, Ptr{Int32}, Ptr{Float64}, Ref{Float64},
            Ptr{Float64}, Ptr{Float64}, Ref{Float64}, Ref{Int32}),
           n, k, n + 5, k + 3, k + 4, X, y, τ, tol, ift, β, μ, s, wa, wb, nsol, ndsol, sol,
           dsol, lsol, h, qn, cutoff, ci, tnmat, big, lci1)
-    β, μ, dsol, ci, tnmat
+    β, μ, dsol, ci, tnmat, ift
 end
 
 """
     fitgurobi(model) 
 
-Fit quantile regresion model using 
+Fit quantile regresion model using Gurobi.
 """
 function fitgurobi!(model::QuantRegModel)
     optimizer = Gurobi.Optimizer(OutputFlag=0)
@@ -154,6 +157,45 @@ function fitgurobi!(model::QuantRegModel)
     model.fit.resid = μ
     model.fit.dual = d
     model.fit.yhat = y - μ
+
+    model
+end
+
+"""
+    fitfn(model::QuantRegModel)
+
+Fit model using Frish-Newton algorithm.
+"""
+function fitfn!(model::QuantRegModel)
+    ϵ = eps()^(1/2)
+    if model.τ < ϵ || model.τ > 1- ϵ
+        error("Ccannot use Barrodale-Roberts method for τ extremely close to 0 or 1.")
+    end
+    n, k = size(model.mm.m)
+    a = convert(Array, transpose(model.mm.m))
+    y = -1 .* response(model.mf)
+    rhs = (1 - model.τ) .* mapslices(sum, model.mm.m, dims=1)
+    dsol = ones(n)
+    μ = ones(n)
+    β = 0.99995
+    wn = zeros(10 * n)
+    wn[1 : n] .= (1 - model.τ)
+    wp = zeros(k, k + 3)
+    nit = zeros(3)
+    info = [1]
+    ccall(("rqfnb_", rqfnblib), Cvoid,
+          (Ref{Int32}, Ref{Int32}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64},
+           Ptr{Float64}, Ref{Float64}, Ref{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Int32},
+           Ptr{Int32}),
+          n, k, a, y, rhs, dsol, μ, β, ϵ, wn, wp, nit, info)
+    if info[1] != 0
+        error("Fitting error: singular design matrix in stepy.")
+    end
+    model.fit.computed = true
+    model.fit.coef = -1 .* wp[:, 1]
+    model.fit.resid = μ
+    model.fit.dual = dsol
+    model.fit.yhat = response(model.mf) - μ
 
     model
 end
