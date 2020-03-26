@@ -2,6 +2,9 @@ language: julia
 julia:
   - 1.4.0
 
+env:
+  GUROBI_JL_SKIP_LIB_CHECK=1
+
 jobs:
   include:
     - stage: "Documentation"
