@@ -61,7 +61,7 @@ function QuantRegModel(formula::FormulaTerm, data::DataFrame, τ::Number;
                        α::Number=0.05, hs::Bool=true, iid::Union{Nothing, Bool}=nothing,
                        interpolate::Bool=true, tcrit::Bool=true)
     formula = apply_schema(formula, schema(formula, data),
-                                       QuantRegModel)
+                                       QuantRegModel)                               
     mf = ModelFrame(formula, data)
     mm = ModelMatrix(mf)
     if exact == nothing
@@ -154,10 +154,10 @@ function coeftable(model::QuantRegModel)
             vals = hcat(vals, transpose(model.inf.lowerci), transpose(model.inf.upperci))
             cistring = pyfmt("3.1d", (1 - model.inf.α) * 100)
             if model.inf.interpolate
-                header = vcat(header, [cistring * "% Lower CI", cistring * "% Upper CI"])
+                header = vcat(header, [cistring * "% CI Lower CI", cistring * "% CI Upper"])
             else
-                header = vcat(header, [cistring * "% Lower CI", cistring* "% lower CI",
-                                      cistring * "% upper CI", cistring * "% Upper CI",])
+                header = vcat(header, [cistring * "% CI Lower", cistring* "% CI lower",
+                                      cistring * "% CI upper", cistring * "% Upper",])
             end
         elseif model.inf.computed & !model.inf.exact
             vals = hcat(vals, model.inf.σ, model.inf.t, model.inf.p)
