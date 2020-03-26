@@ -237,7 +237,14 @@ Base.getindex(X::QuantRegModels, i) = X.models[i]
 Base.append!(X::QuantRegModels, model::QuantRegModel) = setindex!(X.models, model, model.τ)
 taus(X::QuantRegModels) = keys(X.models)
 
-function rq(formula::FormulaTerm, data::DataFrame; kargs...) #something weird here with \tau
+"""
+    rq(formula::FormulaTerm, data::DataFrame; kargs)
+
+Generate, fit, and compute inference for the specified quantile regression model.
+
+# Keyword Arguments
+"""
+function rq(formula::FormulaTerm, data::DataFrame; kargs...)
     kwargs = Dict(kargs)
     τ = pop!(kwargs, :τ, 0.5)
     if typeof(τ) <: Number
