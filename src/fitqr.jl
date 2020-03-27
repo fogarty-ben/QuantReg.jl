@@ -104,8 +104,8 @@ Wraps call to the public domain Barrodale-Roberts simplex FORTRAN routine.
 - `cutoff`: the critical point for testing
 - `lci1`: whether to calculate CI
 """
-function fitbrfortran(n::Integer, k::Integer, X::Matrix{Number}, y::Vector{Number},
-                      τ::Number, nsol::Integer, ndsol::Integer, qn::Vector{Number},
+function fitbrfortran(n::Integer, k::Integer, X::Matrix{<:Number}, y::Vector{<:Number},
+                      τ::Number, nsol::Integer, ndsol::Integer, qn::Vector{<:Number},
                       cutoff::Number, lci1::Bool)
     tol = eps()^(2/3) # floating point tolerance from machine
     ift = [1] # flag for uniqueness

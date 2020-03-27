@@ -65,10 +65,10 @@ function compute_inf!(model::QuantRegModel)
         end
         # Write standard errors, test statistic, and p-values to to model.inf
         model.inf.σ = σ
-        model.inf.teststat = model.fit.coef ./ model.inf.σ
+        model.inf.teststatistic = model.fit.coef ./ model.inf.σ
         n, k = size(model.mm)
         dist = TDist(n - k)
-        model.inf.p = 2 .* (1 .- cdf.(dist, abs.(model.inf.t)))
+        model.inf.p = 2 .* (1 .- cdf.(dist, abs.(model.inf.teststatistic)))
     end
     model.inf.computed = true
     
@@ -83,8 +83,8 @@ Compute inference for `model` as specified in `model.inf`.
 compute_inf(model::QuantRegModel) = compute_inf!(copy(model))
 
 """
-    compute_nid_qn_invers(i::Integer, data::DataFrame, regressors::Array{Term},
-                      weights::Array{Float64})
+    compute_nid_qn_invers(i::Integer, data::DataFrame, regressors::Array{<:AbstractTerm},
+                      weights::Array{<:Number})
 
 Computes residuals variances from the projection of each column of X on remaining columns
 for rank test inversion inference under the n.i.d. assumption.
@@ -98,8 +98,9 @@ for computing inference with a rank test inversion and with n.i.d. errors.
 - `regressors`: list of regressors from the model
 - `weights`: weight to use in calculating projection as a linear regression
 """
-function compute_nid_qn_invers(i::Integer, data::DataFrame, regressors::Array{Term},
-                              weights::Array{Float64, 1})
+function compute_nid_qn_invers(i::Integer, data::DataFrame,
+                               regressors::Array{<:AbstractTerm},
+                               weights::Array{<:Number, 1})
     formula = regressors[i] ~ foldl(+, vcat([ConstantTerm(0)], regressors[Not(i)]))
     model = lm(formula, data, wts=weights)
     resid = residuals(model)
@@ -143,9 +144,9 @@ function init_ci_invers(model::QuantRegModel)
         if model.τ + band > 1 || model.τ - band < 0
             error("Cannot compute CI: one of bandwidth bounds outside [0, 1].")
         end
-        ubmodel = QuantRegModel(model, model.τ + band)
+        ubmodel = QuantRegModel(model; τ=model.τ + band)
         ub = fitbr!(ubmodel, ci=false).fit.coef
-        lbmodel = QuantRegModel(model, model.τ - band)
+        lbmodel = QuantRegModel(model, τ=model.τ - band)
         lb = fitbr!(lbmodel, ci=false).fit.coef
         dypred = model.mm.m * (ub - lb)
         if any(dypred .<= 0)
@@ -185,7 +186,7 @@ function compute_σ_iid_asy(model::QuantRegModel)
     
     # Generate and fit auxillary model
     df = DataFrame(residorder=residorder, xt=xt)
-    auxmodel = QuantRegModel(@formula(residorder ~ xt), df, 0.5)
+    auxmodel = QuantRegModel(@formula(residorder ~ xt), df; τ=0.5)
     fit!(auxmodel)
     
     # Use auxillary model to calculate standard errors
@@ -212,9 +213,9 @@ function compute_σ_nid_asy(model::QuantRegModel)
         error("Cannot compute CI: one of bandwidth bounds outside [0, 1].")
     end
     ϵ = eps()^(1/2)
-    ubmodel = QuantRegModel(model, model.τ + band)
+    ubmodel = QuantRegModel(model; τ=model.τ + band)
     ub = fit(ubmodel).fit.coef
-    lbmodel = QuantRegModel(model, model.τ - band)
+    lbmodel = QuantRegModel(model; τ=model.τ - band)
     lb = fit(lbmodel).fit.coef
     
     # Use auxillary models to calculate standard errors

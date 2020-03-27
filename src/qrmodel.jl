@@ -19,6 +19,21 @@ mutable struct QuantRegFit
 end
 
 """
+    copy(fit::QuantRegFit)
+
+Create a deep copy of `fit`.
+"""
+function Base.copy(fit::QuantRegFit)
+    newfit = QuantRegFit(fit.computed, fit.method,
+                         fit.coef == nothing ? nothing : copy(fit.coef),
+                         fit.resid == nothing ? nothing : copy(fit.resid),
+                         fit.dual == nothing ? nothing : copy(fit.dual),
+                         fit.yhat == nothing ? nothing : copy(fit.yhat))
+
+    newfit
+end
+
+"""
     QuantRegInf(computed::Bool, invers::Bool, α::Number, hs::Union{Nothing, Bool}, iid::Bool,
     interpolate::Bool, tcrit::Bool, lowerci::Union{Nothing, Array{Number}},
     upperci::Union{Nothing, Array{Number}}, σ::Union{Nothing, Array{Number}},
@@ -44,6 +59,24 @@ mutable struct QuantRegInf
     σ::Union{Nothing, Array{Number}}
     teststatistic::Union{Nothing, Array{Number}}
     p::Union{Nothing, Array{Number}}
+end
+
+
+"""
+    copy(inf::QuantRegInf)
+
+Create a deep copy of `inf`.
+"""
+function Base.copy(inf::QuantRegInf)
+    newinf = QuantRegInf(inf.computed, inf.invers, inf.α, inf.hs, inf.iid, inf.interpolate,
+                         inf.tcrit,
+                         inf.lowerci == nothing ? nothing : copy(inf.lowerci),
+                         inf.upperci == nothing ? nothing : copy(inf.upperci),
+                         inf.σ  == nothing ? nothing : copy(inf.σ),
+                         inf.teststatistic  == nothing ? nothing : copy(inf.teststatistic),
+                         inf.p  == nothing ? nothing : copy(inf.p))
+                         
+    newinf
 end
 
 """
@@ -85,32 +118,33 @@ struct QuantRegModel <: StatisticalModel
     fit::QuantRegFit
     inf::QuantRegInf
 
-    function QuantRegModel(formula::FormulaTerm, data::DataFrame; τ::Number=0.5,
-                           method::String="br", invers::Union{Nothing, Bool}=nothing,
-                           α::Number=0.05, hs::Bool=true, iid::Union{Nothing, Bool}=nothing,
-                           interpolate::Bool=true, tcrit::Bool=true)
-        formula = apply_schema(formula, schema(formula, data), QuantRegModel)                               
-        mf = ModelFrame(formula, data)
-        mm = ModelMatrix(mf)
-        if invers == nothing
-            if size(mm.m)[1] <= 1000
-                invers = true
-            else
-                invers = false
-            end
+end
+
+function QuantRegModel(formula::FormulaTerm, data::DataFrame; τ::Number=0.5,
+                        method::String="br", invers::Union{Nothing, Bool}=nothing,
+                        α::Number=0.05, hs::Bool=true, iid::Union{Nothing, Bool}=nothing,
+                        interpolate::Bool=true, tcrit::Bool=true)
+    formula = apply_schema(formula, schema(formula, data), QuantRegModel)                               
+    mf = ModelFrame(formula, data)
+    mm = ModelMatrix(mf)
+    if invers == nothing
+        if size(mm.m)[1] <= 1000
+            invers = true
+        else
+            invers = false
         end
-        if iid == nothing
-            if invers
-                iid = true
-            else
-                iid = false
-            end
-        end
-        mfit = QuantRegFit(false, method, nothing, nothing, nothing, nothing)
-        minf = QuantRegInf(false, invers, α, hs, iid, interpolate, tcrit,
-                nothing, nothing, nothing, nothing, nothing)
-        QuantRegModel(formula, data, mf, mm, τ, mfit, minf)
     end
+    if iid == nothing
+        if invers
+            iid = true
+        else
+            iid = false
+        end
+    end
+    mfit = QuantRegFit(false, method, nothing, nothing, nothing, nothing)
+    minf = QuantRegInf(false, invers, α, hs, iid, interpolate, tcrit,
+            nothing, nothing, nothing, nothing, nothing)
+    QuantRegModel(formula, data, mf, mm, τ, mfit, minf)
 end
 
 """
@@ -169,17 +203,11 @@ end
 """
     copy(model::QuantRegModel)
 
-Create a deep copy of `model`.
+Create a deep copy of `model` (excluding data and formula).
 """
 function Base.copy(model::QuantRegModel)
-    mfit = QuantRegFit(model.fit.computed, model.fit.method, copy(model.fit.coef),
-                       copy(model.fit.resid), copy(model.fit.dual), copy(model.fit.yhat))
-    
-    minf = QuantRegInf(model.inf.computed, model.inf.invers, model.inf.α, model.inf.hs,
-                       model.inf.iid, model.inf.interpolate, model.inf.tcrit,
-                       copy(model.inf.lowerci), copy(model.inf.upperci),
-                       copy(model.inf.σ), copy(model.inf.t), copy(model.inf.p))
-    
+    mfit = copy(model.fit)
+    minf = copy(model.inf)
     mframe = ModelFrame(model.formula, model.data)
     mmatrix = ModelMatrix(mframe)
     
@@ -196,14 +224,15 @@ StatsBase.coef(model::QuantRegModel) = model.fit.computed ? model.fit.coef :
 StatsBase.coefnames(model::QuantRegModel) = coefnames(model.mf)
 StatsBase.dof(model::QuantRegModel) = size(model.mm.m)[2]
 StatsBase.dof_residual(model::QuantRegModel) = size(model.mm.m)[1] - size(model.mm.m)[2]
+StatsBase.fitted(model::QuantRegModel) = model.fit.computed ? model.fit.yhat :
+                               error("Model hasn't been fit.")
 StatsBase.isfitted(model::QuantRegModel) = model.fit.computed
 StatsBase.islinear(::QuantRegModel) = true
 StatsBase.nobs(model::QuantRegModel) = size(model.mm.m)[1]
 StatsBase.stderr(model::QuantRegModel) = model.inf.computed ? (!model.inf.invers ? model.inf.σ :
                                ["NA" for i=1:size(model.mm.m)[2]]) :
                                error("Inference hasn't been computed")                            
-StatsBase.fitted(model::QuantRegModel) = model.fit.computed ? model.fit.yhat :
-                               error("Model hasn't been fit.")
+
 StatsBase.modelmatrix(model::QuantRegModel) = model.mm
 StatsBase.response(model::QuantRegModel) = response(model.mf)
 StatsBase.responsename(model::QuantRegModel) = terms(model.formula)[1]
@@ -245,7 +274,7 @@ function StatsBase.coeftable(model::QuantRegModel)
 end
 
 """
-    show(io::IO, model:QuantRegModel:: multiple::Bool=false)
+    show(io::IO, model:QuantRegModel)
 
 Display quantreg model.
 """
@@ -276,9 +305,10 @@ models could be accessed as `models[0.25], models[0.5],` and `models[0.75]` resp
 """
 struct QuantRegModels
     models::Dict
-    function QuantRegModels()
-        QuantRegModels(Dict())
-    end
+end
+
+function QuantRegModels()
+    QuantRegModels(Dict())
 end
 
 """
@@ -288,7 +318,7 @@ Display each model in `models`.
 """
 function Base.show(io::IO, models::QuantRegModels)
     for (τ, model) in models.models
-        show(io, model, multiple=true)
+        show(io, model)
     end
 
 end
@@ -301,16 +331,24 @@ Returns the model in `X` fit at the τth quantile.
 Base.getindex(X::QuantRegModels, τ::Number) = X.models[τ]
 
 """
+    getindex(X::QuantRegModels, τ::Number)
+
+Check if `X` contains a model at the τth percentile.
+"""
+hastau(X::QuantRegModels, τ::Number) = haskey(X.models, τ)
+
+"""
     append!(X::QuantRegModels, model::QuantRegModel)
 
 Add `model` to `X` in-place; throws an error if `X` already contains a model with the same
 τ value as `model`.
 """   
-Base.append!(X::QuantRegModels, model::QuantRegModel) = !haskey(X, model.τ) ? 
+Base.append!(X::QuantRegModels, model::QuantRegModel) = !hastau(X, model.τ) ? 
                                                         setindex!(X.models, model, model.τ) :
                                                         error("Object already contains a" *
                                                               "model with τ=" *
                                                               model.τ)
+                                                            
 
 """
     taus(X::QuantRegModels)
