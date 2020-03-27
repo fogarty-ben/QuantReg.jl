@@ -1,17 +1,13 @@
 """
-    QuantRegFit(computed::Bool, method::String, coef::Union{Vector, Nothing},
-                resid::Union{Vector, Nothing}, dual::Union{Array, Nothing},
-                yhat::Union{Vector, Nothing})
+    QuantRegFit(computed::Bool, coef::Union{Vector, Nothing},resid::Union{Vector, Nothing},
+                dual::Union{Array, Nothing}, yhat::Union{Vector, Nothing})
 
-Contains specifications for results of fitting a quantile regression model.
+Stores results of fitting a quantile regression model.
 
-`computed` and `method` store specifications that will alwyas be set to their final values.
-`coef`, `resid`, `dual`, and `yhat` store results of fitting a model and are set to
-`nothing` until the model is fit.
+`coef`, `resid`, `dual`, and `yhat` should be set to nothing until a model is fit.
 """
 mutable struct QuantRegFit
     computed::Bool
-    method::String
     coef::Union{Vector, Nothing}
     resid::Union{Vector, Nothing}
     dual::Union{Array, Nothing}
@@ -24,7 +20,7 @@ end
 Create a deep copy of `fit`.
 """
 function Base.copy(fit::QuantRegFit)
-    newfit = QuantRegFit(fit.computed, fit.method,
+    newfit = QuantRegFit(fit.computed,
                          fit.coef == nothing ? nothing : copy(fit.coef),
                          fit.resid == nothing ? nothing : copy(fit.resid),
                          fit.dual == nothing ? nothing : copy(fit.dual),
@@ -48,12 +44,6 @@ will alwyas be set to their final values. `lowerci`, `upperci`, `σ`, `teststati
 """
 mutable struct QuantRegInf
     computed::Bool
-    invers::Bool
-    α::Number
-    hs::Union{Nothing, Bool}
-    iid::Bool
-    interpolate::Bool
-    tcrit::Bool
     lowerci::Union{Nothing, Array{Number}}
     upperci::Union{Nothing, Array{Number}}
     σ::Union{Nothing, Array{Number}}
@@ -68,8 +58,7 @@ end
 Create a deep copy of `inf`.
 """
 function Base.copy(inf::QuantRegInf)
-    newinf = QuantRegInf(inf.computed, inf.invers, inf.α, inf.hs, inf.iid, inf.interpolate,
-                         inf.tcrit,
+    newinf = QuantRegInf(inf.computed,
                          inf.lowerci == nothing ? nothing : copy(inf.lowerci),
                          inf.upperci == nothing ? nothing : copy(inf.upperci),
                          inf.σ  == nothing ? nothing : copy(inf.σ),
@@ -80,17 +69,17 @@ function Base.copy(inf::QuantRegInf)
 end
 
 """
-    QuantRegModel(formula::FormulaTerm, data::DataFrame; τ::Number=0.5, method::String="br",
-                  invers::Union{Nothing, Bool}=nothing, α::Number=0.05, hs::Bool=true,
-                  iid::Union{Nothing, Bool}=nothing, interpolate::Bool=true,
-                  tcrit::Bool=true)
+    QuantRegModel(formula::FormulaTerm, data::DataFrame; τ::Number=0.5,
+                  fitmethod::String="br",invers::Union{Nothing, Bool}=nothing,
+                  α::Number=0.05, hs::Bool=true, iid::Union{Nothing, Bool}=nothing,
+                  interpolate::Bool=true, tcrit::Bool=true)
 
 Quantile Regression model at the `τ`th quantile fitting `data` according to `formula`.
 
 In any call, `formula` and `data` must be set. Additional parameters and their defaults are
 as specified below:
 - `τ`: the quantile to fit the model at; default is 0.5, i.e. median regression
-- `method`: the method to fit the model with; avaliable options are:
+- `fitmethod`: the method to fit the model with; avaliable options are:
    - `"br"`: fit using Barrodlae-Roberts simplex (default method); see [`fitbr!`] for
    details
    - `"fn"``: Fit using Frisch-Newton algorithm; see [`fitfn!`] for details
@@ -115,13 +104,20 @@ struct QuantRegModel <: StatisticalModel
     mf::ModelFrame
     mm::ModelMatrix
     τ::Number
+    fitmethod::String
+    invers::Bool
+    α::Number
+    hs::Union{Nothing, Bool}
+    iid::Bool
+    interpolate::Bool
+    tcrit::Bool
     fit::QuantRegFit
     inf::QuantRegInf
 
 end
 
 function QuantRegModel(formula::FormulaTerm, data::DataFrame; τ::Number=0.5,
-                        method::String="br", invers::Union{Nothing, Bool}=nothing,
+                        fitmethod::String="br", invers::Union{Nothing, Bool}=nothing,
                         α::Number=0.05, hs::Bool=true, iid::Union{Nothing, Bool}=nothing,
                         interpolate::Bool=true, tcrit::Bool=true)
     formula = apply_schema(formula, schema(formula, data), QuantRegModel)                               
@@ -141,15 +137,15 @@ function QuantRegModel(formula::FormulaTerm, data::DataFrame; τ::Number=0.5,
             iid = false
         end
     end
-    mfit = QuantRegFit(false, method, nothing, nothing, nothing, nothing)
-    minf = QuantRegInf(false, invers, α, hs, iid, interpolate, tcrit,
-            nothing, nothing, nothing, nothing, nothing)
-    QuantRegModel(formula, data, mf, mm, τ, mfit, minf)
+    mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
+    minf = QuantRegInf(false, nothing, nothing, nothing, nothing, nothing)
+    QuantRegModel(formula, data, mf, mm, τ, fitmethod,  invers, α, hs, iid, interpolate,
+                  tcrit, mfit, minf)
 end
 
 """
     QuantRegModel(model::QuantRegModel; τ::Union{Nothing, Number}=nothing,
-                  method::Union{Nothing, String}=nothing,
+                  fitmethod::Union{Nothing, String}=nothing,
                   invers::Union{Nothing, Bool}=nothing, α::Union{Nothing, Number}=nothing,
                   hs::Union{Nothing, Bool}=nothing, iid::Union{Nothing, Bool}=nothing,
                   interpolate::Union{Nothing, Bool}=nothing,
@@ -161,38 +157,37 @@ If `τ` or `method` are unchanged, then the model fit is retained from the passe
 the model inference type is not.
 """
 function QuantRegModel(model::QuantRegModel; τ::Union{Nothing, Number}=nothing,
-                       method::Union{Nothing, String}=nothing,
+                       fitmethod::Union{Nothing, String}=nothing,
                        invers::Union{Nothing, Bool}=nothing,
                        α::Union{Nothing, Number}=nothing, hs::Union{Nothing, Bool}=nothing,
                        iid::Union{Nothing, Bool}=nothing,
                        interpolate::Union{Nothing, Bool}=nothing,
                        tcrit::Union{Nothing, Bool}=nothing)
-    fitchanged = any(map(x -> x != nothing, [τ, method]))
+    fitchanged = any(map(x -> x != nothing, [τ, fitmethod]))
     infchanged = any(map(x -> x != nothing, [invers, α, hs, iid, interpolate, tcrit]))
     if fitchanged
-        mfit = QuantRegFit(false, method == nothing ? model.fit.method : method,
-                           nothing, nothing, nothing, nothing)
-        minf = QuantRegInf(false,
-                           invers == nothing ? model.inf.invers : invers,
-                           α == nothing ? model.inf.α : α,
-                           hs == nothing ? model.inf.hs : hs,
-                           iid == nothing ? model.inf.iid : iid,
-                           interpolate == nothing ? model.inf.interpolate : interpolate,
-                           tcrit == nothing ? model.inf.tcrit : tcrit,
-                           nothing, nothing, nothing, nothing, nothing)
+        mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
+        minf = QuantRegInf(false, nothing, nothing, nothing, nothing, nothing)
         newmodel = QuantRegModel(model.formula, model.data, model.mf, model.mm,
-                                 τ == nothing ? model.τ : τ, mfit, minf)
+                                 τ == nothing ? model.τ : τ,
+                                 fitmethod == nothing ? model.fitmethod : fitmethod,
+                                 invers == nothing ? model.invers : invers,
+                                 α == nothing ? model.α : α,
+                                 hs == nothing ? model.hs : hs,
+                                 iid == nothing ? model.iid : iid,
+                                 interpolate == nothing ? model.interpolate : interpolate,
+                                 tcrit == nothing ? model.tcrit : tcrit,
+                                 mfit, minf)
     elseif infchanged
-        minf = QuantRegInf(false,
-                           invers == nothing ? model.inf.invers : invers,
-                           α == nothing ? model.inf.α : α,
-                           hs == nothing ? model.inf.hs : hs,
-                           iid == nothing ? model.inf.iid : iid,
-                           interpolate == nothing ? model.inf.interpolate : interpolate,
-                           tcrit == nothing ? model.inf.tcrit : tcrit,
-                           nothing, nothing, nothing, nothing, nothing)
+        minf = QuantRegInf(false, nothing, nothing, nothing, nothing, nothing)
         newmodel = QuantRegModel(model.formula, model.data, model.mf, model.mm,
-                                 τ == nothing ? model.τ : τ, model.fit, minf)
+                                 τ == nothing ? model.τ : τ, model.fitmethod,
+                                 invers == nothing ? model.invers : invers,
+                                 α == nothing ? model.α : α,
+                                 hs == nothing ? model.hs : hs,
+                                 iid == nothing ? model.iid : iid,
+                                 interpolate == nothing ? model.interpolate : interpolate,
+                                 tcrit == nothing ? model.tcrit : tcrit,model.fit, minf)
     else
         error("No parameters specified to be updated.")
     end
@@ -211,33 +206,37 @@ function Base.copy(model::QuantRegModel)
     mframe = ModelFrame(model.formula, model.data)
     mmatrix = ModelMatrix(mframe)
     
-    QuantRegModel(model.formula, model.data, mframe, mmatrix, model.τ, mfit,
-                  minf)
+    QuantRegModel(model.formula, model.data, mframe, mmatrix, model.τ, model.fitmethod,
+                  model.invers, model.α, model.hs, model.iid, model.interpolate, model.tcrit,
+                  mfit, minf)
 end
 
 # Informs how schema apply a function to a model
 implicit_intercept(::QuantRegModel) = true
 
-# Implementing StatBase absetraction functions
+# Implementing StatBase abstraction functions
 StatsBase.coef(model::QuantRegModel) = model.fit.computed ? model.fit.coef :
-                             error("Model hasn't been fit.")
+                                       error("Model hasn't been fit.")
 StatsBase.coefnames(model::QuantRegModel) = coefnames(model.mf)
+StatsBase.confint(model::QuantRegModel) = model.inf.computed ?
+                                          hcat(model.inf.lowerci, model.inf.upperci) :
+                                          error("Inference hasn't been computed.")
 StatsBase.dof(model::QuantRegModel) = size(model.mm.m)[2]
 StatsBase.dof_residual(model::QuantRegModel) = size(model.mm.m)[1] - size(model.mm.m)[2]
 StatsBase.fitted(model::QuantRegModel) = model.fit.computed ? model.fit.yhat :
-                               error("Model hasn't been fit.")
+                                         error("Model hasn't been fit.")
 StatsBase.isfitted(model::QuantRegModel) = model.fit.computed
 StatsBase.islinear(::QuantRegModel) = true
 StatsBase.nobs(model::QuantRegModel) = size(model.mm.m)[1]
-StatsBase.stderr(model::QuantRegModel) = model.inf.computed ? (!model.inf.invers ? model.inf.σ :
-                               ["NA" for i=1:size(model.mm.m)[2]]) :
-                               error("Inference hasn't been computed")                            
-
+StatsBase.stderr(model::QuantRegModel) = model.inf.computed ?
+                                        (!model.inf.invers ? model.inf.σ :
+                                         ["NA" for i=1:dof(model)]) :
+                                        error("Inference hasn't been computed")                            
 StatsBase.modelmatrix(model::QuantRegModel) = model.mm
 StatsBase.response(model::QuantRegModel) = response(model.mf)
 StatsBase.responsename(model::QuantRegModel) = terms(model.formula)[1]
 StatsBase.residuals(model::QuantRegModel) = model.fit.computed ? model.fit.resid :
-                                  error("Model hasn't been fit.")
+                                            error("Model hasn't been fit.")
 
 """
     coeftable(model::QuantRegModel)
@@ -251,23 +250,25 @@ function StatsBase.coeftable(model::QuantRegModel)
         # Add coefficient estimates to table
         vals = hcat(model.fit.coef)
         header = ["Coefficient"]
-        if model.inf.computed & model.inf.invers # Add rank test inversion inf. to table
-            vals = hcat(vals, transpose(model.inf.lowerci), transpose(model.inf.upperci))
-            cistring = pyfmt("3.1d", (1 - model.inf.α) * 100)
-            if model.inf.interpolate
-                header = vcat(header, [cistring * "% CI Lower CI", cistring * "% CI Upper"])
-            else
+        if model.inf.computed
+            if !model.invers # Add asymptotic inf. to table
+                vals = hcat(vals, model.inf.σ, model.inf.teststatistic, model.inf.p)
+                if model.tcrit
+                    header = vcat(header, ["Std. Error", "t", "P(>|t|)"])
+                else
+                    header = vcat(header, ["Std. Error", "z", "P(>|z|)"])
+                end
+            end 
+
+            vals = hcat(vals, model.inf.lowerci, model.inf.upperci)
+            cistring = pyfmt("3.1d", (1 - model.α) * 100)
+            if model.invers & !model.interpolate
                 header = vcat(header, [cistring * "% CI Lower", cistring* "% CI lower",
-                                      cistring * "% CI upper", cistring * "% Upper",])
-            end
-        elseif model.inf.computed & !model.inf.invers # Add asymptotic inf. to table
-            vals = hcat(vals, model.inf.σ, model.inf.teststatistic, model.inf.p)
-            if model.inf.tcrit
-                header = vcat(header, ["Std. Error", "t", "P(>|t|)"])
+                                       cistring * "% CI upper", cistring * "% Upper",])
             else
-                header = vcat(header, ["Std. Error", "z", "P(>|z|)"])
+                header = vcat(header, [cistring * "% CI Lower", cistring * "% CI Upper"])
             end
-        end 
+        end
     end
     
     CoefTable(vals, header, coefnames(model))

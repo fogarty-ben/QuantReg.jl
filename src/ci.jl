@@ -32,17 +32,20 @@ Write confidence intervals to `model.inf`.
 """
 function write_ci!(model::QuantRegModel, ci::Array{Float64, 2}, tnmat::Array{Float64, 2},
                    cutoff::Float64)
-    if model.inf.interpolate
-        model.inf.lowerci = ci[2:2,:] .- (abs.(ci[1:1,:] .- ci[2:2,:]) .* 
+    if model.interpolate
+        lowerci = ci[2:2,:] .- (abs.(ci[1:1,:] .- ci[2:2,:]) .* 
                             (cutoff .- abs.(tnmat[2:2,:]))) ./ abs.(tnmat[1:1,:] .-
                              tnmat[2:2,:])
-        model.inf.upperci = ci[3:3,:] .+ (abs.(ci[4:4,:] .- ci[3:3,:]) .* 
+        upperci = ci[3:3,:] .+ (abs.(ci[4:4,:] .- ci[3:3,:]) .* 
                             (cutoff .- abs.(tnmat[3:3,:]))) ./ abs.(tnmat[4:4,:] .- 
                              tnmat[3:3,:])
     else
-        model.inf.lowerci = ci[1:2, :]
-        model.inf.upperci = ci[3:4, :]
+        lowerci = ci[1:2, :]
+        upperci = ci[3:4, :]
     end
+
+    model.inf.lowerci = transpose(lowerci)
+    model.inf.upperci = transpose(upperci)
 end
 
 """
@@ -55,10 +58,10 @@ function compute_inf!(model::QuantRegModel)
         error("Model must be fitted before calculating confidence interval.")
     elseif model.inf.computed
         @info("Inference already computed, skipping recomputation.")
-    elseif model.inf.invers
+    elseif model.invers
         fitbr!(model; ci=true)
     else
-        if model.inf.iid
+        if model.iid
             σ = compute_σ_iid_asy(model)
         else
             σ = compute_σ_nid_asy(model)
@@ -69,6 +72,9 @@ function compute_inf!(model::QuantRegModel)
         n, k = size(model.mm)
         dist = TDist(n - k)
         model.inf.p = 2 .* (1 .- cdf.(dist, abs.(model.inf.teststatistic)))
+        critval = quantile(dist, 1 - model.α / 2)
+        model.inf.lowerci = model.fit.coef .- critval .* σ
+        model.inf.upperci = model.fit.coef .+ critval .* σ  
     end
     model.inf.computed = true
     
@@ -76,7 +82,7 @@ function compute_inf!(model::QuantRegModel)
 end  
 
 """
-    compute_inf(model)
+    compute_inf(model::QuantRegModel)
 
 Compute inference for `model` as specified in `model.inf`.
 """
@@ -129,18 +135,18 @@ function init_ci_invers(model::QuantRegModel)
     lci1 = true
 
     # Get critical point for the confidence interval
-    if model.inf.tcrit
+    if model.tcrit
         dist = TDist(n - k)
     else
         dist = Normal()
     end
-    cutoff = quantile(dist, 1 - model.inf.α/2)
+    cutoff = quantile(dist, 1 - model.α/2)
     
     # Calculate resid. var. from projecting each predictor column on others
-    if model.inf.iid # assuming errors are iid
+    if model.iid # assuming errors are iid
         qn = 1 ./ diag(inv(transpose(model.mm.m) * model.mm.m))
     else # assuming errors are nid
-        band = compute_bandwidth(model.τ, n, model.inf.α; hs=model.inf.hs)
+        band = compute_bandwidth(model.τ, n, model.α; hs=model.hs)
         if model.τ + band > 1 || model.τ - band < 0
             error("Cannot compute CI: one of bandwidth bounds outside [0, 1].")
         end
@@ -207,8 +213,8 @@ under the assumption that the conditional quantile function is locally (in tau) 
 """
 function compute_σ_nid_asy(model::QuantRegModel)
     # Generate and fit auxillary models
-    band = compute_bandwidth(model.τ, length(response(model.mf)), model.inf.α;
-                             hs=model.inf.hs)
+    band = compute_bandwidth(model.τ, length(response(model.mf)), model.α;
+                             hs=model.hs)
     if model.τ + band > 1 || model.τ - band < 0
         error("Cannot compute CI: one of bandwidth bounds outside [0, 1].")
     end
@@ -219,12 +225,12 @@ function compute_σ_nid_asy(model::QuantRegModel)
     lb = fit(lbmodel).fit.coef
     
     # Use auxillary models to calculate standard errors
-    δypred = model.mm.m * (ub - lb)
-    if any(δypred .<= 0)
-        @warn sum(δypred <= 0) * "non-positive fis. See" *
+    dypred = model.mm.m * (ub - lb)
+    if any(dypred .<= 0)
+        @warn sum(dypred <= 0) * "non-positive fis. See" *
               "http://www.econ.uiuc.edu/~roger/research/rq/FAQ #7."
     end
-    f = (max.(0, (2 * band)./(δypred .- ϵ)))
+    f = (max.(0, (2 * band)./(dypred .- ϵ)))
     fr = qr(sqrt.(f) .* model.mm.m).R
     fnorminv = fr \ I
     fnorminv = fnorminv * transpose(fnorminv)

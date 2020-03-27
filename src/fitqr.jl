@@ -9,14 +9,14 @@ In-place version of `[fit(model)]`.
 function StatsBase.fit!(model::QuantRegModel)
     if !model.fit.computed & 0 <= model.τ <= 1
         fitfxn = nothing
-        if model.fit.method == "br"
+        if model.fitmethod == "br"
             fitbr!(model)
-        elseif model.fit.method == "gurobi"
+        elseif model.fitmethod == "gurobi"
             fitgurobi!(model)
-        elseif model.fit.method == "fn"
+        elseif model.fitmethod == "fn"
             fitfn!(model)
         else
-            @error("Fitting method " * model.fit.method * " unsupported.")
+            @error("Fitting method " * model.fitmethod * " unsupported.")
         end
         model.fit.computed = true
         model
