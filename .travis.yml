@@ -5,11 +5,10 @@ julia:
 env:
   global:
     - GUROBI_JL_SKIP_LIB_CHECK=1
-    - TRAVIS_CI=1
 
 jobs:
   include:
-    - stage:
+    - stage: "Test"
       julia: 1.4.0
       os: linux
       script:
