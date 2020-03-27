@@ -180,7 +180,7 @@ function fitgurobi!(model::QuantRegModel)
     else
         error("Gurobi not properly installed/configured on this machine.\nIf Gurobi is " *
               "installed, be sure that the environment variable GUROBI_HOME is set to " *
-              "the location of your Gurobi installation.")
+              "the location of your Gurobi installation before loading QuantReg.jl.")
     end
 end
 
