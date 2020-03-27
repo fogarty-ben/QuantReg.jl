@@ -1,4 +1,6 @@
-#push!(LOAD_PATH, joinpath(@__DIR__, "../src"))
+if !haskey(ENV, "TRAVIS_CI")
+    push!(LOAD_PATH, joinpath(@__DIR__, "../src"))
+end
 using Documenter, QuantReg
 
 makedocs(sitename="QuantReg.jl")
