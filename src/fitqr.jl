@@ -146,7 +146,7 @@ be accomplished by switching the optimizer and creating the model in automatic m
 this may leave some small efficiency gains on the table.
 """
 function fitgurobi!(model::QuantRegModel)
-    if !haskey(ENV, "GUROBI_HOME") # ensure that the system has Gurobi installed
+    if haskey(ENV, "GUROBI_HOME") # ensure that the system has Gurobi installed
         optimizer = Gurobi.Optimizer(OutputFlag=0)
         lp = direct_model(optimizer)
         

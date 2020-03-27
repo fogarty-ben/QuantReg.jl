@@ -1,7 +1,11 @@
 """
-    QuantRegFit
+    QuantRegFit(computed::Bool, method::String, coef::Union{Vector, Nothing},
+                resid::Union{Vector, Nothing}, dual::Union{Array, Nothing},
+                yhat::Union{Vector, Nothing})
 
 Contains specifications for results of fitting a quantile regression model.
+
+`computed` and `method` parameters are always set.
 """
 mutable struct QuantRegFit
     computed::Bool
