@@ -1,10 +1,10 @@
 """
-    QuantRegFit(computed::Bool, coef::Union{Vector, Nothing},resid::Union{Vector, Nothing},
+    QuantRegFit(computed::Bool, coef::Union{Vector, Nothing}, resid::Union{Vector, Nothing},
                 dual::Union{Array, Nothing}, yhat::Union{Vector, Nothing})
 
 Stores results of fitting a quantile regression model.
 
-`coef`, `resid`, `dual`, and `yhat` should be set to nothing until a model is fit.
+`coef`, `resid`, `dual`, and `yhat` should be set to `nothing` until a model is fit.
 """
 mutable struct QuantRegFit
     computed::Bool
@@ -30,24 +30,22 @@ function Base.copy(fit::QuantRegFit)
 end
 
 """
-    QuantRegInf(computed::Bool, invers::Bool, α::Number, hs::Union{Nothing, Bool}, iid::Bool,
-    interpolate::Bool, tcrit::Bool, lowerci::Union{Nothing, Array{Number}},
-    upperci::Union{Nothing, Array{Number}}, σ::Union{Nothing, Array{Number}},
-    teststatistic::Union{Nothing, Array{Number}}, p::Union{Nothing, Array{Number}})
+    QuantRegInf(computed::Bool, lowerci::Union{Nothing, Array{Number}},
+                upperci::Union{Nothing, Array{Number}}, σ::Union{Nothing, Array{Number}},
+                teststat::Union{Nothing, Array{Number}}, p::Union{Nothing, Array{Number}})
 
 Contains specifcations for and results of computing inference for a quantile regression
 model.
 
-`computed` `invers`, `α`, `hs`, `iid`, `interpolate`, and `trcit` store specifications that
-will alwyas be set to their final values. `lowerci`, `upperci`, `σ`, `teststatistic`, and
-`p` store results of fitting a model and are set to `nothing` until the model is fit.
+`lowerci`, `upperci`, `σ`, `teststat` should be set to `nothing` until inference is
+computed.
 """
 mutable struct QuantRegInf
     computed::Bool
     lowerci::Union{Nothing, Array{Number}}
     upperci::Union{Nothing, Array{Number}}
     σ::Union{Nothing, Array{Number}}
-    teststatistic::Union{Nothing, Array{Number}}
+    teststat::Union{Nothing, Array{Number}}
     p::Union{Nothing, Array{Number}}
 end
 
@@ -62,7 +60,7 @@ function Base.copy(inf::QuantRegInf)
                          inf.lowerci == nothing ? nothing : copy(inf.lowerci),
                          inf.upperci == nothing ? nothing : copy(inf.upperci),
                          inf.σ  == nothing ? nothing : copy(inf.σ),
-                         inf.teststatistic  == nothing ? nothing : copy(inf.teststatistic),
+                         inf.teststat  == nothing ? nothing : copy(inf.teststat),
                          inf.p  == nothing ? nothing : copy(inf.p))
                          
     newinf
@@ -80,7 +78,7 @@ In any call, `formula` and `data` must be set. Additional parameters and their d
 as specified below:
 - `τ`: the quantile to fit the model at; default is 0.5, i.e. median regression
 - `fitmethod`: the method to fit the model with; avaliable options are:
-   - `"br"`: fit using Barrodlae-Roberts simplex (default method); see [`fitbr!`] for
+   - `"br"`: fit using Barrodlae-Roberts simplex (default method); see [`fitbr!`] for 
    details
    - `"fn"``: Fit using Frisch-Newton algorithm; see [`fitfn!`] for details
    - `"gurobi"``: Fit using Gurobi (must have Gurobi installed); see [`fitgurobi!``]
@@ -252,7 +250,7 @@ function StatsBase.coeftable(model::QuantRegModel)
         header = ["Coefficient"]
         if model.inf.computed
             if !model.invers # Add asymptotic inf. to table
-                vals = hcat(vals, model.inf.σ, model.inf.teststatistic, model.inf.p)
+                vals = hcat(vals, model.inf.σ, model.inf.teststat, model.inf.p)
                 if model.tcrit
                     header = vcat(header, ["Std. Error", "t", "P(>|t|)"])
                 else

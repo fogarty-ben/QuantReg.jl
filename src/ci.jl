@@ -68,10 +68,10 @@ function compute_inf!(model::QuantRegModel)
         end
         # Write standard errors, test statistic, and p-values to to model.inf
         model.inf.σ = σ
-        model.inf.teststatistic = model.fit.coef ./ model.inf.σ
+        model.inf.teststat = model.fit.coef ./ model.inf.σ
         n, k = size(model.mm)
         dist = TDist(n - k)
-        model.inf.p = 2 .* (1 .- cdf.(dist, abs.(model.inf.teststatistic)))
+        model.inf.p = 2 .* (1 .- cdf.(dist, abs.(model.inf.teststat)))
         critval = quantile(dist, 1 - model.α / 2)
         model.inf.lowerci = model.fit.coef .- critval .* σ
         model.inf.upperci = model.fit.coef .+ critval .* σ  
