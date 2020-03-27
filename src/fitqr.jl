@@ -132,7 +132,7 @@ function fitbrfortran(n::Integer, k::Integer, X::Matrix{<:Number}, y::Vector{<:N
           n, k, n + 5, k + 3, k + 4, X, y, τ, tol, ift, β, μ, s, wa, wb, nsol, ndsol, sol,
           dsol, lsol, h, qn, cutoff, ci, tnmat, big, lci1)
     
-    β, μ, dsol, ci, tnmat, ift
+    β, μ, dsol[:, 1], ci, tnmat, ift
 end
 
 """
