@@ -25,6 +25,7 @@ function StatsBase.fit!(model::QuantRegModel)
     else
         @warn("Model already fitted.")
     end
+
     model
 end
 
@@ -176,6 +177,10 @@ function fitgurobi!(model::QuantRegModel)
         model.fit.yhat = y - μ
 
         model
+    else
+        error("Gurobi not properly installed/configured on this machine.\nIf Gurobi is " *
+              "installed, be sure that the environment variable GUROBI_HOME is set to " *
+              "the location of your Gurobi installation.")
     end
 end
 
