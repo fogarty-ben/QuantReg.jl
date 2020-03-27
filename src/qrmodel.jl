@@ -1,10 +1,11 @@
 """
     QuantRegFit
 
-Contains response from fitting a quantile regression model.
+Contains specifications for results of fitting a quantile regression model.
 """
 mutable struct QuantRegFit
     computed::Bool
+    method::String
     coef::Union{Vector, Nothing}
     resid::Union{Vector, Nothing}
     dual::Union{Array, Nothing}
@@ -12,9 +13,10 @@ mutable struct QuantRegFit
 end
 
 """
-    QuantRegFit
+    QuantRegInf
 
-Contains specs and results of computing inference for a quantile regression model.
+Contains specifcations for and results of computing inference for a quantile regression
+model.
 """
 mutable struct QuantRegInf
     computed::Bool
@@ -51,7 +53,6 @@ struct QuantRegModel <: StatisticalModel
     mf::ModelFrame
     mm::ModelMatrix
     τ::Number
-    method::String
     fit::QuantRegFit
     inf::QuantRegInf
 end
@@ -78,10 +79,10 @@ function QuantRegModel(formula::FormulaTerm, data::DataFrame, τ::Number;
             iid = false
         end
     end
-    mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
+    mfit = QuantRegFit(false, method, nothing, nothing, nothing, nothing)
     minf = QuantRegInf(false, exact, α, hs, iid, interpolate, tcrit,
                        nothing, nothing, nothing, nothing, nothing)
-    QuantRegModel(formula, data, mf, mm, τ, method, mfit, minf)
+    QuantRegModel(formula, data, mf, mm, τ, mfit, minf)
 end
 
 function QuantRegModel(model::QuantRegModel; τ::Union{Nothing, Number}=nothing,
@@ -94,7 +95,8 @@ function QuantRegModel(model::QuantRegModel; τ::Union{Nothing, Number}=nothing,
     fitchanged = any(map(x -> x != nothing, [τ, method]))
     infchanged = any(map(x -> x != nothing, [exact, α, hs, iid, interpolate, tcrit]))
     if fitchanged
-        mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
+        mfit = QuantRegFit(false, method == nothing ? model.fit.method : method,
+                           nothing, nothing, nothing, nothing)
         minf = QuantRegInf(false,
                            exact == nothing ? model.inf.exact : exact,
                            α == nothing ? model.inf.α : α,
@@ -104,9 +106,7 @@ function QuantRegModel(model::QuantRegModel; τ::Union{Nothing, Number}=nothing,
                            tcrit == nothing ? model.inf.tcrit : tcrit,
                            nothing, nothing, nothing, nothing, nothing)
         newmodel = QuantRegModel(model.formula, model.data, model.mf, model.mm,
-                                 τ == nothing ? model.τ : τ,
-                                 method == nothing ? model.method : method,
-                                 mfit, minf)
+                                 τ == nothing ? model.τ : τ, mfit, minf)
     elseif infchanged
         minf = QuantRegInf(false,
                            exact == nothing ? model.inf.exact : exact,
@@ -117,9 +117,7 @@ function QuantRegModel(model::QuantRegModel; τ::Union{Nothing, Number}=nothing,
                            tcrit == nothing ? model.inf.tcrit : tcrit,
                            nothing, nothing, nothing, nothing, nothing)
         newmodel = QuantRegModel(model.formula, model.data, model.mf, model.mm,
-                                 τ == nothing ? model.τ : τ,
-                                 method == nothing ? model.method : method,
-                                 model.fit, minf)
+                                 τ == nothing ? model.τ : τ, model.fit, minf)
     else
         newmodel = copy(model)
     end
@@ -128,15 +126,15 @@ function QuantRegModel(model::QuantRegModel; τ::Union{Nothing, Number}=nothing,
 end
 
 function copy(model::QuantRegModel)
-    mfit = QuantRegFit(model.fit.computed, model.fit.coef, model.fit.resid, model.fit.dual,
-                       model.fit.yhat)
+    mfit = QuantRegFit(model.fit.computed, model.fit.method, model.fit.coef,
+                       model.fit.resid, model.fit.dual, model.fit.yhat)
     minf = QuantRegInf(model.inf.computed, model.inf.exact, model.inf.α, model.inf.hs,
                        model.inf.iid, model.inf.interpolate, model.inf.tcrit,
                        model.inf.lowerci, model.inf.upperci, model.inf.σ, model.inf.t,
                        model.inf.p)
     mframe = ModelFrame(model.formula, model.data)
     mmatrix = ModelMatrix(mframe)
-    QuantRegModel(model.formula, model.data, mframe, mmatrix, model.τ, model.method, mfit,
+    QuantRegModel(model.formula, model.data, mframe, mmatrix, model.τ, mfit,
                   minf)
 end
 
