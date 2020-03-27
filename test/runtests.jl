@@ -1,3 +1,19 @@
-using Test, QuantReg
+using Test, CSV, QuantReg
 
-@test 1 == 1
+mtcars = CSV.read(joinpath(@__DIR__, "../data/mtcars.csv"))
+mtcarsmodel = rq(@formula(mpg ~ disp + hp + cyl), mtcars; τ=0.75)
+@testset "mtcars" begin
+    @test all(isapprox.(mtcarsmodel.fit.coef,
+                        [41.03834732; -0.01190525; -0.01290315; -2.26653900]; atol=1e-8))
+    @test all(isapprox.(mtcarsmodel.fit.resid,
+                        [-3.114927e+00; -3.114927e+00; -6.686431e+00; -1.548212e+00;
+                        2.337907e+00; -5.305601e+00; -1.158873e+00; -5.025696e+00;
+                        -6.270133e+00; -4.656706e+00; -6.056706e+00; -9.000000e-01;
+                        -3.552714e-15; -2.100000e+00; -4.241611e+00; -4.255442e+00;
+                        -1.065814e-14; 2.216360e+00; 3.552714e-15; 3.612977e+00;
+                        -7.790765e+00; -1.684693e+00; -2.151366e+00; -2.277926e+00;
+                        3.314117e+00; -2.880069e+00; -3.365803e+00; 1.018054e+00;
+                        4.791393e-01; -3.754801e+00; -7.105427e-15; -7.725213e+00];
+                        atol=1e-6))
+end
+
