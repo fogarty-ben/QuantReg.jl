@@ -86,11 +86,11 @@ function fitbr!(model::QuantRegModel; ci=false)
 end
 
 """
-Need to update from here down.
+    fitbrfortran(n::Integer, k::Integer, X::Matrix{Number}, y::Vector{Number},
+                 τ::Number, nsol::Integer, ndsol::Integer, qn::Vector{Number},
+                 cutoff::Number, lci1::Bool)
 
-    fitbrfortran()
-
-Call rqbr RATFOR code.
+Wraps call to the public domain Barrodale-Roberts simplex FORTRAN routine.
 
 # Arguments
 - `n`: number of observations
@@ -107,20 +107,20 @@ Call rqbr RATFOR code.
 function fitbrfortran(n::Integer, k::Integer, X::Matrix{Number}, y::Vector{Number},
                       τ::Number, nsol::Integer, ndsol::Integer, qn::Vector{Number},
                       cutoff::Number, lci1::Bool)
-    tol = eps()^(2/3) # floating point tolerance
-    ift = [1]
-    β = zeros(k)
-    μ = zeros(n)
-    s = zeros(n)
-    wa = zeros(n + 5, k + 4)
-    wb = zeros(n)
-    sol = zeros(k + 3, nsol)
-    dsol = zeros(n, ndsol)
-    lsol = 0
-    h = zeros(k, nsol)
-    ci = zeros(4, k)
-    tnmat = zeros(4, k)
-    big = prevfloat(Inf)
+    tol = eps()^(2/3) # floating point tolerance from machine
+    ift = [1] # flag for uniqueness
+    β = zeros(k) # coefficients
+    μ = zeros(n) # residuals
+    s = zeros(n) # work array
+    wa = zeros(n + 5, k + 4) # work array
+    wb = zeros(n) # work array
+    sol = zeros(k + 3, nsol) # primal solution array
+    dsol = zeros(n, ndsol) # dual solution array
+    lsol = 0 # actual row dimension of solutions array
+    h = zeros(k, nsol) # basic observations indices
+    ci = zeros(4, k) # calculated confidence intervals
+    tnmat = zeros(4, k) # JGPK rank test statistics
+    big = prevfloat(Inf) # largest float from machine
 
     ccall(("rqbr_", rqbrlib), Cvoid,
           (Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32},
@@ -131,16 +131,22 @@ function fitbrfortran(n::Integer, k::Integer, X::Matrix{Number}, y::Vector{Numbe
           n, k, n + 5, k + 3, k + 4, X, y, τ, tol, ift, β, μ, s, wa, wb, nsol, ndsol, sol,
           dsol, lsol, h, qn, cutoff, ci, tnmat, big, lci1)
     
-          β, μ, dsol, ci, tnmat, ift
+    β, μ, dsol, ci, tnmat, ift
 end
 
 """
-    fitgurobi(model) 
+    fitgurobi(model::QuantRegModel) 
 
-Fit quantile regresion model using Gurobi.
+Fit `model` using Gurobi via Julia's JuMP library.
+
+This algorithm has been tailored specifically to work with Julia (hence the use of direct)
+mode. Some time was spent researching the use of open-source solvers such as GLPK, but they
+proved to be too slow. Extending this method to work with other solvers, such as CPLEX could
+be accomplished by switching the optimizer and creating the model in automatic mode, but
+this may leave some small efficiency gains on the table.
 """
 function fitgurobi!(model::QuantRegModel)
-    if !haskey(ENV, "TRAVIS_CI")
+    if !haskey(ENV, "TRAVIS_CI") # 
         optimizer = Gurobi.Optimizer(OutputFlag=0)
         lp = direct_model(optimizer)
         
@@ -176,10 +182,16 @@ end
 """
     fitfn(model::QuantRegModel)
 
-Fit model using Frish-Newton algorithm.
+Fit `model` using the Frish-Newton algorithm.
+
+Fitting with this method does not produce solutions to the dual problem.
+
+This fitting method leverages public domain FORTRAN code written by Roger Koenker for the R
+`quantreg` package. In the `quantreg` packaage, this is equivalent to the `fn` and `fnb`
+methods.
 """
 function fitfn!(model::QuantRegModel)
-    ϵ = eps()^(1/2)
+    ϵ = eps()^(1/2) # tolerance to determine convergence
     if model.τ < ϵ || model.τ > 1- ϵ
         error("Cannot use Barrodale-Roberts method for τ extremely close to 0 or 1.")
     end
@@ -195,14 +207,17 @@ function fitfn!(model::QuantRegModel)
     wp = zeros(k, k + 3)
     nit = zeros(3)
     info = [1]
+    
     ccall(("rqfnb_", rqfnblib), Cvoid,
           (Ref{Int32}, Ref{Int32}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64},
            Ptr{Float64}, Ref{Float64}, Ref{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Int32},
            Ptr{Int32}),
           n, k, a, y, rhs, dsol, μ, β, ϵ, wn, wp, nit, info)
-    if info[1] != 0
+    
+          if info[1] != 0
         error("Fitting error: singular design matrix in stepy.")
     end
+    
     model.fit.computed = true
     model.fit.coef = -1 .* wp[:, 1]
     model.fit.yhat = model.mm.m * model.fit.coef
