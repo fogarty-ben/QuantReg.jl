@@ -55,7 +55,7 @@ function compute_inf!(model::QuantRegModel)
         error("Model must be fitted before calculating confidence interval.")
     elseif model.inf.computed
         @info("Inference already computed, skipping recomputation.")
-    elseif model.inf.exact
+    elseif model.inf.invers
         fitbr!(model; ci=true)
     else
         if model.inf.iid
@@ -83,11 +83,11 @@ Compute inference for `model` as specified in `model.inf`.
 compute_inf(model::QuantRegModel) = compute_inf!(copy(model))
 
 """
-    compute_exact_nid_qn(i::Integer, data::DataFrame, regressors::Array{Term},
+    compute_nid_qn_invers(i::Integer, data::DataFrame, regressors::Array{Term},
                       weights::Array{Float64})
 
 Computes residuals variances from the projection of each column of X on remaining columns
-for exact inference under the n.i.d. assumption.
+for rank test inversion inference under the n.i.d. assumption.
 
 This function should be of little interest to end users as it is primarily a helper function
 for computing inference with a rank test inversion and with n.i.d. errors.
@@ -98,7 +98,7 @@ for computing inference with a rank test inversion and with n.i.d. errors.
 - `regressors`: list of regressors from the model
 - `weights`: weight to use in calculating projection as a linear regression
 """
-function compute_exact_nid_qn(i::Integer, data::DataFrame, regressors::Array{Term},
+function compute_nid_qn_invers(i::Integer, data::DataFrame, regressors::Array{Term},
                               weights::Array{Float64, 1})
     formula = regressors[i] ~ foldl(+, vcat([ConstantTerm(0)], regressors[Not(i)]))
     model = lm(formula, data, wts=weights)
@@ -158,7 +158,7 @@ function init_ci_invers(model::QuantRegModel)
         regressors = filter(x -> (x != ConstantTerm(-1)) & (x != ConstantTerm(0)),
                             terms(model.formula)[2:end])
         enum_regressors = convert(Array{Integer}, [1:1:length(regressors);])
-        qn = map(i -> compute_exact_nid_qn(i, model.data, regressors, f), enum_regressors) 
+        qn = map(i -> compute_nid_qn_invers(i, model.data, regressors, f), enum_regressors) 
     end
 
     lci1, qn, cutoff
