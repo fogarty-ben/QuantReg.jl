@@ -25,7 +25,7 @@ end
 """
     write_ci(model::QuantRegModel, ci::Array{Number, 2})
 
-Write confidence intervals to `model.inf`.
+Write ranks test inversion confidence intervals to `model.inf`.
 
 `ci` should be a set of  confidence interval matrix produced by a call to
 [`fitbr(model; ci=true)`].

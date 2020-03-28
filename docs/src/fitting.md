@@ -79,7 +79,9 @@ package is fitting via Gurobi. This fitting method is only available to users wh
 have a licensed version of Gurobi installed on their machine and the Gurobi.jl package
 added in Julia. Note that Gurobi.jl is not installed as a dependency of QuantReg.jl so that
 the package is accessible to users without a licensed version of Gurobi (the package
-Gurobi.jl cannot be properly installed without a licensed version of Gurobi).
+Gurobi.jl cannot be properly installed without a licensed version of Gurobi). Further note
+that even if an active Gurobi license is installed on the user's machine, the `GUROBI_HOME`
+environmental variable must be properly set for the Gurobi fitting method to be available.
 
 To select this method when specifying a quantile regression model, set the keyword argument
 `fitmethod="fn"` in either the `gurobi` function of the `QuantRegModel` constructor.
