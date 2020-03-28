@@ -13,7 +13,10 @@ jobs:
       julia: 1.4.0
       os: linux
       script:
-        - julia --check-bounds=yes --color=yes -e 'using Pkg; Pkg.test(coverage=true);'
+        - julia --check-bounds=yes --color=yes -e 'using Pkg;
+                                                   Pkg.develop(PackageSpec(path=pwd()));
+                                                   Pkg.instantiate();
+                                                   Pkg.test(coverage=true);'
 
     - stage: "Documentation"
       julia: 1.4.0
