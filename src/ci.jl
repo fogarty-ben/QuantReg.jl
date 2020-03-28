@@ -1,5 +1,3 @@
-const dqrdclib = joinpath(@__DIR__, "FORTRAN/dqrdc2.dylib")
-
 """
     calcbandwidth(τ::Number, n::Integer, α::Number; hs=false)
 
