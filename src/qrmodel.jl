@@ -87,7 +87,8 @@ asymptotic esimtate of the covariance matrix); default setting is datasets with 
 fewer observations and false for larger datasets
 - `α`: size of test for computing inference; default setting is 0.05
 - `hs`: if true, use Hall Sheather bandwidth when computing sparsity esimtates
-(otherwise, use Bofinger bandwidth); default is true
+(otherwise, use Bofinger bandwidth); default is true (always true when using rank inversion
+inference)
 - `iid`: if true, assume model errors are iid (otherwise, assume that the conditional
 quantile function is locally (in tau) linear (in x)); default is true if using rank test
 inversion and false if using an asymptotic estimate of the covariance matrix
@@ -116,7 +117,7 @@ end
 
 function QuantRegModel(formula::FormulaTerm, data::DataFrame; τ::Number=0.5,
                         fitmethod::String="br", invers::Union{Nothing, Bool}=nothing,
-                        α::Number=0.05, hs::Bool=true, iid::Union{Nothing, Bool}=nothing,
+                        α::Number=0.05, hs::Union{Nothing, Bool}=nothing, iid::Union{Nothing, Bool}=nothing,
                         interpolate::Bool=true, tcrit::Bool=true)
     formula = apply_schema(formula, schema(formula, data), QuantRegModel)                               
     mf = ModelFrame(formula, data)
@@ -134,6 +135,9 @@ function QuantRegModel(formula::FormulaTerm, data::DataFrame; τ::Number=0.5,
         else
             iid = false
         end
+    end
+    if (invers) | (hs == nothing)
+        hs = true
     end
     mfit = QuantRegFit(false, nothing, nothing, nothing, nothing)
     minf = QuantRegInf(false, nothing, nothing, nothing, nothing, nothing)

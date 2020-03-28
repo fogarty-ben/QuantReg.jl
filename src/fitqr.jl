@@ -196,7 +196,7 @@ This fitting method leverages public domain FORTRAN code written by Roger Koenke
 methods.
 """
 function fitfn!(model::QuantRegModel)
-    ϵ = eps()^(1/2) # tolerance to determine convergence
+    ϵ = 1e-10 # tolerance to determine convergence
     if model.τ < ϵ || model.τ > 1- ϵ
         error("Cannot use Barrodale-Roberts method for τ extremely close to 0 or 1.")
     end

@@ -1,3 +1,5 @@
+const dqrdclib = joinpath(@__DIR__, "FORTRAN/dqrdc2.dylib")
+
 """
     calcbandwidth(τ::Number, n::Integer, α::Number; hs=false)
 
@@ -148,7 +150,7 @@ function init_ci_invers(model::QuantRegModel)
     else # assuming errors are nid
         band = compute_bandwidth(model.τ, n, model.α; hs=model.hs)
         if model.τ + band > 1 || model.τ - band < 0
-            error("Cannot compute CI: one of bandwidth bounds outside [0, 1].")
+            error("Cannot compute CI: one of bandwidth quantiles outside [0, 1].")
         end
         ubmodel = QuantRegModel(model; τ=model.τ + band)
         ub = fitbr!(ubmodel, ci=false).fit.coef
@@ -156,7 +158,7 @@ function init_ci_invers(model::QuantRegModel)
         lb = fitbr!(lbmodel, ci=false).fit.coef
         dypred = model.mm.m * (ub - lb)
         if any(dypred .<= 0)
-            @warn sum(dypred <= 0) * "non-positive fis. See" *
+            @warn string(sum(dypred .<= 0)) * " non-positive fis. See " *
                     "http://www.econ.uiuc.edu/~roger/research/rq/FAQ #7."
         end
         
@@ -185,7 +187,7 @@ function compute_σ_iid_asy(model::QuantRegModel)
     fnorminv = fr \ I
     fnorminv = fnorminv * transpose(fnorminv)
     pz = sum(abs.(model.fit.resid) .< ϵ)
-    band = max(k + 1, ceil(n * compute_bandwidth(model.τ, n, model.inf.α; hs=model.inf.hs)))
+    band = max(k + 1, ceil(n * compute_bandwidth(model.τ, n, model.α; hs=model.hs)))
     ir = convert(Array{Integer}, [(pz + 1):1:(band + pz + 1);])
     residorder = sort(model.fit.resid[sortperm(abs.(model.fit.resid))][ir])
     xt = ir/(n-k)
@@ -223,11 +225,11 @@ function compute_σ_nid_asy(model::QuantRegModel)
     ub = fit(ubmodel).fit.coef
     lbmodel = QuantRegModel(model; τ=model.τ - band)
     lb = fit(lbmodel).fit.coef
-    
+
     # Use auxillary models to calculate standard errors
     dypred = model.mm.m * (ub - lb)
     if any(dypred .<= 0)
-        @warn sum(dypred <= 0) * "non-positive fis. See" *
+        @warn string(sum(dypred .<= 0)) * " non-positive fis. See " *
               "http://www.econ.uiuc.edu/~roger/research/rq/FAQ #7."
     end
     f = (max.(0, (2 * band)./(dypred .- ϵ)))

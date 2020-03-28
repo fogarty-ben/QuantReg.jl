@@ -1,19 +1,49 @@
-using Test, CSV, QuantReg
+using Test, CSV, QuantReg, DelimitedFiles, JLD
+
+const resultspath = joinpath(@__DIR__, "results/")
 
 mtcars = CSV.read(joinpath(@__DIR__, "../data/mtcars.csv"))
-mtcarsmodel = rq(@formula(mpg ~ disp + hp + cyl), mtcars; τ=0.75)
+
+mtcarscoef = readdlm(joinpath(resultspath, "./mtcars/coef.txt"), '\t', Float64, '\n')
+mtcarsresid = readdlm(joinpath(resultspath, "./mtcars/resid.txt"), '\t', Float64, '\n')
+mtcarsdual = readdlm(joinpath(resultspath, "./mtcars/dual.txt"), '\t', Float64, '\n')
+mtcarsyhat = readdlm(joinpath(resultspath, "./mtcars/yhat.txt"), '\t', Float64, '\n')
+mtcarsinf = load(joinpath(resultspath, "./mtcars/inf.jld"))["inference"]
 @testset "mtcars" begin
-    @test all(isapprox.(mtcarsmodel.fit.coef,
-                        [41.03834732; -0.01190525; -0.01290315; -2.26653900]; atol=1e-8))
-    @test all(isapprox.(mtcarsmodel.fit.resid,
-                        [-3.114927e+00; -3.114927e+00; -6.686431e+00; -1.548212e+00;
-                        2.337907e+00; -5.305601e+00; -1.158873e+00; -5.025696e+00;
-                        -6.270133e+00; -4.656706e+00; -6.056706e+00; -9.000000e-01;
-                        -3.552714e-15; -2.100000e+00; -4.241611e+00; -4.255442e+00;
-                        -1.065814e-14; 2.216360e+00; 3.552714e-15; 3.612977e+00;
-                        -7.790765e+00; -1.684693e+00; -2.151366e+00; -2.277926e+00;
-                        3.314117e+00; -2.880069e+00; -3.365803e+00; 1.018054e+00;
-                        4.791393e-01; -3.754801e+00; -7.105427e-15; -7.725213e+00];
-                        atol=1e-6))
+    @testset "fit method=$fitmethod, τ=$tau" for fitmethod in ("br", "fn"),
+                                                 tau in (0.1:0.1:0.9)
+            mtcarsmodel = rq(@formula(mpg ~ disp + hp + cyl), mtcars; fitmethod=fitmethod, τ=tau)
+            idx = Int(tau * 10)
+            @test all(isapprox.(mtcarsmodel.fit.coef, mtcarscoef[:, idx]; atol=1e-9))
+            @test all(isapprox.(mtcarsmodel.fit.resid, mtcarsresid[:, idx]; atol=1e-9))
+            if (fitmethod == "br") & (tau == 0.9)
+                @test all(isapprox.(mtcarsmodel.fit.dual, mtcarsdual; atol=1e-9))
+            end
+            @test all(isapprox.(mtcarsmodel.fit.yhat, mtcarsyhat[:, idx]; atol=1e-9))
+    end
+    @testset "inf τ=$τ, invers=$invers, α=$α, hs=$hs, iid=$iid, interp=$interp" for
+        invers in (true, false), α in (0.01, 0.05, 0.10), hs in (true, false),
+        iid in (true, false), interp in (true, false), τ in (0.25:0.25:0.75)
+        local inf
+        try
+            mtcarsmodel = rq(@formula(mpg ~ disp + hp + cyl), mtcars; invers=invers, α=α,
+                             hs=hs, iid=iid, interpolate=interp, τ=τ)
+            if invers
+                inf = hcat(mtcarsmodel.inf.lowerci, mtcarsmodel.inf.upperci)
+            else
+                inf = mtcarsmodel.inf.σ  
+            end
+        catch e
+            inf = "ERROR"
+        finally
+            if inf == "ERROR"
+                @test inf == mtcarsinf[τ][invers][α][hs][iid][interp]
+            else
+                # println(inf)
+                # println(mtcarsinf[string(τ)][string(invers)][string(α)][string(hs)][string(iid)][string(interp)])
+                @test all(isapprox.(inf, mtcarsinf[τ][invers][α][hs][iid][interp]; atol=1e-5))
+            end
+        end
+    end
 end
 
