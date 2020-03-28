@@ -12,7 +12,6 @@ makedocs(sitename="QuantReg.jl",
              "Fitting models" => "fitting.md",
              "Inference" => "inference.md",
              "Example usage" => "example.md",
-             "API" => "api.md"
          ])
 
 deploydocs(

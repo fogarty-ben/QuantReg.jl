@@ -8,9 +8,9 @@ package and only works if Gurobi is already installed on the user's machine.
 
 ## Generic functions
 
-A `QuantRegModel` object, named `model`, can be fit using the generic `fit!()` function.
-This functions fits the object in place, modifying the `QuantRegFit` object stored at
-`model.fit` and the `QuantRegInf` object stored at `model.inf`. For example,
+A `QuantRegModel` object, named `model`, can be fit using the generic `fit!()` function, and
+indeed this is the function that most end users will leverage. This functions fits the
+object in place, modifying the `QuantRegFit` object stored at `model.fit`. For example,
 
 ```
 julia> model = QuantRegModel(@formula(Y ~ X1 + X2 + X3), df; τ=0.80, fitmethod="fn")

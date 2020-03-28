@@ -88,3 +88,18 @@ model object with [func(fit!)](@ref). This function call updates the `QuantRegFi
 stored in the model object. Finally, it computes inference for the model according to the
 specifications in the generated model object with [func(compute_inf!)](@ref). This function
 call updates the `QuantRegInf` object stored in the model object.
+
+For example, the call:
+
+```
+julia> model = rq(@formula(Y ~ X1 + X2 + X3), df; τ=0.80, fitmethod="fn", α=0.20, iid=false)
+```
+
+is equivalent to:
+
+```
+julia> model = QuantRegModel(@formula(Y ~ X1 + X2 + X3), df; τ=0.80, fitmethod="fn", α=0.20, 
+                             iid=false)
+julia> fit!(model)
+julia> compute_inf!(model)
+```
