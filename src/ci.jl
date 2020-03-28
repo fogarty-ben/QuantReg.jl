@@ -44,8 +44,8 @@ function write_ci!(model::QuantRegModel, ci::Array{Float64, 2}, tnmat::Array{Flo
         upperci = ci[3:4, :]
     end
 
-    model.inf.lowerci = transpose(lowerci)
-    model.inf.upperci = transpose(upperci)
+    model.inf.lowerci = convert(Array, transpose(lowerci))
+    model.inf.upperci = convert(Array, transpose(upperci))
 end
 
 """
