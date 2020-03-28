@@ -90,7 +90,7 @@ fewer observations and false for larger datasets
 (otherwise, use Bofinger bandwidth); default is true (always true when using rank inversion
 inference)
 - `iid`: if true, assume model errors are iid (otherwise, assume that the conditional
-quantile function is locally (in tau) linear (in x)); default is true if using rank test
+quantile function is locally (in tau) linear (in x); default is true if using rank test
 inversion and false if using an asymptotic estimate of the covariance matrix
 - `interpolate`: if true, interpolate the confidence intervals produced by rank test
 inversion inference (otherwise, print values just above and below); default is true

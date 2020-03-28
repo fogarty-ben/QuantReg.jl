@@ -3,7 +3,11 @@ if !haskey(ENV, "TRAVIS_CI")
 end
 using Documenter, QuantReg
 
-makedocs(sitename="QuantReg.jl")
+makedocs(sitename="QuantReg.jl",
+         pages = [
+             "index.md",
+             "Quickstart Guide" => "quickstart.md",
+         ])
 
 deploydocs(
     repo = "github.com/fogarty-ben/QuantReg.jl.git",
