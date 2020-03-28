@@ -4,7 +4,7 @@ const rqfnblib = joinpath(@__DIR__, "FORTRAN/rqfnb.dylib")
 """
     fit!(model::QuantRegModel)
 
-In-place version of `[fit(model)]`.
+Fit `model` in-place according to `model.fit.method`.
 """
 function StatsBase.fit!(model::QuantRegModel)
     if !model.fit.computed & 0 <= model.τ <= 1
@@ -32,9 +32,9 @@ end
 """
     fit(model::QuantRegModel)
 
-Fit `model` according to `model.fit.method`.
+Deep copy `model` and fit according to `model.fit.method`.
 """
-fit(model::QuantRegModel) = fit!(copy(model))
+fit(model::QuantRegModel) = fit!(deepcopy(model))
 
 """
     fitbr!(model::QuantRegModel; ci::Bool=false), 
@@ -185,7 +185,7 @@ function fitgurobi!(model::QuantRegModel)
 end
 
 """
-    fitfn(model::QuantRegModel)
+    fitfn!(model::QuantRegModel)
 
 Fit `model` using the Frish-Newton algorithm.
 
