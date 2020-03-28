@@ -1,5 +1,5 @@
-const rqbrlib = joinpath(@__DIR__, "FORTRAN/rqbr.dylib")
-const rqfnblib = joinpath(@__DIR__, "FORTRAN/rqfnb.dylib")
+const rqbrlib = dlopen(joinpath(@__DIR__, "FORTRAN/rqbr.dylib"))
+const rqfnblib = dlopen(joinpath(@__DIR__, "FORTRAN/rqfnb.dylib"))
 
 """
     fit!(model::QuantRegModel)
