@@ -1,12 +1,18 @@
 if !haskey(ENV, "TRAVIS_CI")
     push!(LOAD_PATH, joinpath(@__DIR__, "../src"))
 end
-using Documenter, QuantReg
+using Documenter, QuantReg, DataFrames, StatsBase, StatsModels
 
 makedocs(sitename="QuantReg.jl",
-         pages = [
-             "index.md",
-             "Quickstart Guide" => "quickstart.md",
+         modules=[QuantReg, StatsBase],
+         pages=[
+             "Introduction" => "index.md",
+             "Quickstart" => "quickstart.md",
+             "Types" => "types.md",
+             "Fitting models" => "fitting.md",
+             "Inference" => "inference.md",
+             "Example usage" => "example.md",
+             "API" => "api.md"
          ])
 
 deploydocs(

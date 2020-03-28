@@ -1,25 +1,27 @@
 """
-    QuantRegFit(computed::Bool, coef::Union{Vector, Nothing}, resid::Union{Vector, Nothing},
-                dual::Union{Array, Nothing}, yhat::Union{Vector, Nothing})
+    QuantReg.QuantRegFit(computed::Bool, coef::Union{Vector{<:Number}, Nothing},
+                         resid::Union{Vector{<:Number}, Nothing}, 
+                         dual::Union{Vector{<:Number}, Nothing},
+                         yhat::Union{Vector{<:Number}, Nothing})
 
 Stores results of fitting a quantile regression model.
 
 `coef`, `resid`, `dual`, and `yhat` should be set to `nothing` until a model is fit.
-"""
+""" 
 mutable struct QuantRegFit
     computed::Bool
-    coef::Union{Vector, Nothing}
-    resid::Union{Vector, Nothing}
-    dual::Union{Array, Nothing}
-    yhat::Union{Vector, Nothing}
+    coef::Union{Vector{<:Number}, Nothing}
+    resid::Union{Vector{<:Number}, Nothing}
+    dual::Union{Vector{<:Number}, Nothing}
+    yhat::Union{Vector{<:Number}, Nothing}
 end
 
 """
-    copy(fit::QuantRegFit)
+    deepcopy(fit::QuantRegFit)
 
 Create a deep copy of `fit`.
 """
-function Base.copy(fit::QuantRegFit)
+function Base.deepcopy(fit::QuantRegFit)
     newfit = QuantRegFit(fit.computed,
                          fit.coef == nothing ? nothing : copy(fit.coef),
                          fit.resid == nothing ? nothing : copy(fit.resid),
@@ -30,11 +32,14 @@ function Base.copy(fit::QuantRegFit)
 end
 
 """
-    QuantRegInf(computed::Bool, lowerci::Union{Nothing, Array{Number}},
-                upperci::Union{Nothing, Array{Number}}, σ::Union{Nothing, Array{Number}},
-                teststat::Union{Nothing, Array{Number}}, p::Union{Nothing, Array{Number}})
+    QuantReg.QuantRegInf(computed::Bool,
+                         lowerci::Union{Nothing, Vector{<:Number}, Matrix{<:Number}}
+                         upperci::Union{Nothing, Vector{<:Number}, Matrix{<:Number}}
+                         σ::Union{Nothing, Vector{<:Number}}
+                         teststat::Union{Nothing, Vector{<:Number}}
+                         p::Union{Nothing, Vector{<:Number}})
 
-Contains specifcations for and results of computing inference for a quantile regression
+Stores results of computing inference for a quantile regression
 model.
 
 `lowerci`, `upperci`, `σ`, `teststat` should be set to `nothing` until inference is
@@ -42,20 +47,20 @@ computed.
 """
 mutable struct QuantRegInf
     computed::Bool
-    lowerci::Union{Nothing, Array{Number}}
-    upperci::Union{Nothing, Array{Number}}
-    σ::Union{Nothing, Array{Number}}
-    teststat::Union{Nothing, Array{Number}}
-    p::Union{Nothing, Array{Number}}
+    lowerci::Union{Nothing, Vector{<:Number}, Matrix{<:Number}}
+    upperci::Union{Nothing, Vector{<:Number}, Matrix{<:Number}}
+    σ::Union{Nothing, Vector{<:Number}}
+    teststat::Union{Nothing, Vector{<:Number}}
+    p::Union{Nothing, Vector{<:Number}}
 end
 
 
 """
-    copy(inf::QuantRegInf)
+    deepcopy(inf::QuantRegInf)
 
 Create a deep copy of `inf`.
 """
-function Base.copy(inf::QuantRegInf)
+function Base.deepcopy(inf::QuantRegInf)
     newinf = QuantRegInf(inf.computed,
                          inf.lowerci == nothing ? nothing : copy(inf.lowerci),
                          inf.upperci == nothing ? nothing : copy(inf.upperci),
@@ -67,35 +72,17 @@ function Base.copy(inf::QuantRegInf)
 end
 
 """
-    QuantRegModel(formula::FormulaTerm, data::DataFrame; τ::Number=0.5,
-                  fitmethod::String="br",invers::Union{Nothing, Bool}=nothing,
-                  α::Number=0.05, hs::Bool=true, iid::Union{Nothing, Bool}=nothing,
-                  interpolate::Bool=true, tcrit::Bool=true)
+    QuantRegModel(formula::FormulaTerm, data::DataFrame, mf::ModelFrame, mm::ModelMatrix,
+                  τ::Number, fitmethod::String, invers::Bool, α::Number, hs::Bool,
+                  iid::Bool, interpolate::Bool, tcrit::Bool, fit::QuantRegFit,
+                  inf::QuantRegInfe)
 
-Quantile Regression model at the `τ`th quantile fitting `data` according to `formula`.
+Contains a quantile regression model at the `τ`th quantile fitting `data` according to
+`formula`.
 
-In any call, `formula` and `data` must be set. Additional parameters and their defaults are
-as specified below:
-- `τ`: the quantile to fit the model at; default is 0.5, i.e. median regression
-- `fitmethod`: the method to fit the model with; avaliable options are:
-   - `"br"`: fit using Barrodlae-Roberts simplex (default method); see [`fitbr!`] for 
-   details
-   - `"fn"``: Fit using Frisch-Newton algorithm; see [`fitfn!`] for details
-   - `"gurobi"``: Fit using Gurobi (must have Gurobi installed); see [`fitgurobi!``]
-- `invers`: if true, compute confidence intervals by inverting a rank test (otherwise use an
-asymptotic esimtate of the covariance matrix); default setting is datasets with 1000 or
-fewer observations and false for larger datasets
-- `α`: size of test for computing inference; default setting is 0.05
-- `hs`: if true, use Hall Sheather bandwidth when computing sparsity esimtates
-(otherwise, use Bofinger bandwidth); default is true (always true when using rank inversion
-inference)
-- `iid`: if true, assume model errors are iid (otherwise, assume that the conditional
-quantile function is locally (in tau) linear (in x); default is true if using rank test
-inversion and false if using an asymptotic estimate of the covariance matrix
-- `interpolate`: if true, interpolate the confidence intervals produced by rank test
-inversion inference (otherwise, print values just above and below); default is true
-- `tcrit`: if true, use a Student's t distribution for calculating critical points
-(otherwise use a normal distribution); default is true
+Use of this default constructor is not recommended. If rank test inversion is used to
+compute inference, then the Hall-Sheather bandwidths flag will always be set to true,
+overriding user choices.
 """
 struct QuantRegModel <: StatisticalModel
     formula::FormulaTerm
@@ -106,15 +93,46 @@ struct QuantRegModel <: StatisticalModel
     fitmethod::String
     invers::Bool
     α::Number
-    hs::Union{Nothing, Bool}
+    hs::Bool
     iid::Bool
     interpolate::Bool
     tcrit::Bool
     fit::QuantRegFit
     inf::QuantRegInf
 
+    function QuantRegModel(formula::FormulaTerm, data::DataFrame, mf::ModelFrame,
+                           mm::ModelMatrix, τ::Number, fitmethod::String, invers::Bool,
+                           α::Number, hs::Bool, iid::Bool, interpolate::Bool, tcrit::Bool,
+                           fit::QuantRegFit, inf::QuantRegInf)
+        if invers
+            hs = true
+        end
+        new(formula, data, mf, mm, τ, fitmethod, invers, α, hs, iid, interpolate, tcrit,
+            fit, inf)
+    end
 end
 
+"""
+    QuantRegModel(formula::FormulaTerm, data::DataFrame; τ::Number=0.5,
+                  fitmethod::String="br",invers::Union{Nothing, Bool}=nothing,
+                  α::Number=0.05, hs::Bool=true, iid::Union{Nothing, Bool}=nothing,
+                  interpolate::Bool=true, tcrit::Bool=true)
+
+Construct a quantile regression model at the `τ`th quantile fitting `data` according to
+`formula`.
+
+In any call, `formula` and `data` must be set. The logic for selecting values for
+unspecified parameters is as follows:
+- `τ`: default is 0.5, i.e. median regression
+- `fitmethod`: default method is the Barrodale-Roberts simplex
+- `invers`: default setting is true for datasets with 1000 or fewer observations and false
+    for larger datasets
+- `α`: default setting is 0.05
+- `hs`: default is true; always set to true when computing inference via rank test inversion
+- `iid`: default is true if computing inference via rank test inversion and false otherwise
+- `interpolate`: default is true
+- `tcrit`: default is true
+"""
 function QuantRegModel(formula::FormulaTerm, data::DataFrame; τ::Number=0.5,
                         fitmethod::String="br", invers::Union{Nothing, Bool}=nothing,
                         α::Number=0.05, hs::Union{Nothing, Bool}=nothing, iid::Union{Nothing, Bool}=nothing,
@@ -153,7 +171,8 @@ end
                   interpolate::Union{Nothing, Bool}=nothing,
                   tcrit::Union{Nothing, Bool}=nothing)
 
-Construct a new QuantileRegression model by changing a parameter in an existing model.
+Construct a new quantile regression model by changing one or more parameters in an
+existing model.
 
 If `τ` or `method` are unchanged, then the model fit is retained from the passed model but
 the model inference type is not.
@@ -198,13 +217,13 @@ function QuantRegModel(model::QuantRegModel; τ::Union{Nothing, Number}=nothing,
 end
 
 """
-    copy(model::QuantRegModel)
+    deepcopy(model::QuantRegModel)
 
 Create a deep copy of `model` (excluding data and formula).
 """
-function Base.copy(model::QuantRegModel)
-    mfit = copy(model.fit)
-    minf = copy(model.inf)
+function Base.deepcopy(model::QuantRegModel)
+    mfit = deepcopy(model.fit)
+    minf = deepcopy(model.inf)
     mframe = ModelFrame(model.formula, model.data)
     mmatrix = ModelMatrix(mframe)
     
@@ -240,11 +259,7 @@ StatsBase.responsename(model::QuantRegModel) = terms(model.formula)[1]
 StatsBase.residuals(model::QuantRegModel) = model.fit.computed ? model.fit.resid :
                                             error("Model hasn't been fit.")
 
-"""
-    coeftable(model::QuantRegModel)
 
-Generate a coefficient table from a QuantRegModel.
-"""
 function StatsBase.coeftable(model::QuantRegModel)
     if !model.fit.computed
         error("Model hasn't been fit.")
@@ -277,7 +292,7 @@ function StatsBase.coeftable(model::QuantRegModel)
 end
 
 """
-    show(io::IO, model:QuantRegModel)
+    show(io::IO, model::QuantRegModel)
 
 Display quantreg model.
 """
@@ -308,10 +323,9 @@ models could be accessed as `models[0.25], models[0.5],` and `models[0.75]` resp
 """
 struct QuantRegModels
     models::Dict
-end
-
-function QuantRegModels()
-    QuantRegModels(Dict())
+    function QuantRegModels()
+        new(Dict())
+    end
 end
 
 """
@@ -320,7 +334,8 @@ end
 Display each model in `models`.
 """
 function Base.show(io::IO, models::QuantRegModels)
-    for (τ, model) in models.models
+
+    for (τ, model) in sort(collect(models.models))
         show(io, model)
     end
 
@@ -361,14 +376,14 @@ Retrive all the `τ` values for models stored in `X`.
 taus(X::QuantRegModels) = keys(X.models)
 
 """
-    rq(formula::FormulaTerm, data::DataFrame; kargs)
+    rq(formula::FormulaTerm, data::DataFrame; kwargs)
 
 Generate, fit, and compute inference for the specified quantile regression model.
 
-# Keyword Arguments
+Acceptable kwargs are the same as those accepted by [QuantRegModel](@ref).
 """
-function rq(formula::FormulaTerm, data::DataFrame; τ=0.5, kargs...)
-    kwargs = Dict(kargs)
+function rq(formula::FormulaTerm, data::DataFrame; τ=0.5, kwargs...)
+    kwargs = Dict(kwargs)
     if typeof(τ) <: Number
         model = QuantRegModel(formula, data; τ=τ, kwargs...)
         fit!(model)

@@ -65,20 +65,21 @@ will return the quantile regression model fit at the 0.25th quantile.
 ## Configuring models
 
 Users can provide more detailed model specifications as keyword arguments to the quantile
-regression command. Any specification fields in the QuantRegModel type can be accepted as a
-keyword argument. The following command fits a quantile regression model at the 0.80th
-quantile using the Frisch-Newton and computes 80% confidence intervals under the assumption
-that the conditional quantile function is locally (in tau) linear (in x) (i.e. regression
-errors are not i.i.d.).
+regression command. Any specification fields in the [QuantRegModel][@ref] type can be
+accepted as a keyword argument. The following command fits a quantile regression model at
+the 0.80th quantile using the Frisch-Newton and computes 80% confidence intervals under the
+assumption that the conditional quantile function is locally (in tau) linear (in x) (i.e.
+regression errors are not i.i.d.).
 
 ```
 julia> rq(@formula(Y ~ X1 + X2 + X3), df; τ=0.80, fitmethod="fn", α=0.20, iid=false)
 ```
 
-A full description of the available configurations and their defaults is available in the
-[type(QuantRegModel)](@ref) reference.
+```@docs
+rq
+```
 
-## Under the hood
+## Under the hood of rq
 
 In code, the `rq` functions is really a wrapper for three functions that constitute a common
 work flow. It first constructs a `QuantRegModel` object according to the specifications
