@@ -1,5 +1,3 @@
-import Pkg
-Pkg.add(["Test", "CSV", "DelimitedFiles", "JLD"])
 using Test, CSV, QuantReg, DelimitedFiles, JLD
 
 const resultspath = joinpath(@__DIR__, "results/")
