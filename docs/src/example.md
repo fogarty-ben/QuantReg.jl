@@ -11,7 +11,7 @@ and the QuantReg.jl package then load the dataset from file.
 julia> using CSV, QuantReg
 [ Info: Precompiling QuantReg [a0becc08-653f-40d2-91e7-721373d1053f]
 
-julia> df = CSV.read("../../Documents/Classes/ppha-48403/hw2/bwght.csv")
+julia> df = CSV.read("./bwght.csv")
 9800×14 DataFrames.DataFrame
 │ Row  │ birthweight │ boy   │ married │ black │ age   │ highschool │ somecollege │ college │
 │      │ Int64       │ Int64 │ Int64   │ Int64 │ Int64 │ Int64      │ Int64       │ Int64   │ 
