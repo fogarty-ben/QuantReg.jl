@@ -173,7 +173,7 @@ function fitgurobi!(model::QuantRegModel)
         optimize!(lp)
         β = value.(β)
         μ = value.(u) - value.(v)
-        d = dual.(feas) .+ 0.5
+        d = dual.(feas) .+ (1 - model.τ)
         
         model.fit.computed = true
         model.fit.coef = β
