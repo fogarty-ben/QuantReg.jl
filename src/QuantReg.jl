@@ -8,7 +8,7 @@ if haskey(ENV, "GUROBI_HOME") # ensure Gurobi is installed before loading packag
 end
 
 export coef, coefnames, coeftable, dof, dof_residual, fitted, @formula, isfitted, islinear,
-       nobs, modelmatrix, response, responsename, residuals
+       nobs, modelmatrix, response, responsename, residuals, stderr
 
 export
     # Model type
@@ -16,9 +16,10 @@ export
 
     # functions
     rq,
+    fit,
+    fit!,
     compute_inf,
     compute_inf!
-
 
 include("qrmodel.jl")
 include("fitqr.jl")
