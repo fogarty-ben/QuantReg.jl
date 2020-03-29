@@ -255,5 +255,5 @@ Lastly, there is also an implementation of `show` which nicely displays all the 
 `QuantRegModels` object.
 
 ```@docs
-Base.show(::QuantRegModesl)
+Base.show(::QuantReg.QuantRegModels)
 ```
