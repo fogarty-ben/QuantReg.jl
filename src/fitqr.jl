@@ -49,7 +49,7 @@ invervals produced by this method, but `model.fit` is not updated.
 This fitting method leverages public domain FORTRAN code written by Roger Koenker for the R
 `quantreg` package.
 """
-function fitbr!(model::QuantRegModel; ci=false)
+function fitbr!(model::QuantRegModel; ci::Bool=false)
     big = prevfloat(Inf) 
     n, k = size(model.mm.m)
     if rank(model.mm.m) != k
