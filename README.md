@@ -1,2 +1,2 @@
-# quantreg.jl
-An implementation of  Roger Koenker's quantreg package for Julia.
+# QuantReg.jl
+An implementation of  quantile regression for Julia modeled after on the R quantreg package.
