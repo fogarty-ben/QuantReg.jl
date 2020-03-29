@@ -56,7 +56,7 @@ QuantReg.fitbr!
 This method relies on a subroutine, `fitbrfortran`, that handles the FORTRAN call.
 
 ```@docs
-QuantReg.fitbr!
+QuantReg.fitbrfortran
 ```
 
 ## Frisch-Newton Algorithm

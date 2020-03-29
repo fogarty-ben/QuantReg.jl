@@ -225,7 +225,7 @@ that the models are indexed by their τ value, and that each `QuantRegModels` ob
 no more than one `QuantRegModel` for a given τ value. 
 
 ```@docs
-Base.append!(::QuantReg.QuantRegModels, ::QuantReg.QuantRegModels)
+Base.append!(::QuantReg.QuantRegModels, ::QuantReg.QuantRegModel)
 ```
 
 A `getindex` method is implemented for this type, so users can access a particular model via
@@ -255,5 +255,5 @@ Lastly, there is also an implementation of `show` which nicely displays all the 
 `QuantRegModels` object.
 
 ```@docs
-Base.show(::QuantReg.QuantRegModels)
+Base.show(::IO, ::QuantReg.QuantRegModels)
 ```

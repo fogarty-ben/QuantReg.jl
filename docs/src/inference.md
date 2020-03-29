@@ -66,13 +66,11 @@ and call different subroutines depending on the specifications of the model.
 
 To compute confidence intervals by inverting a rank test, this algorithm leverages the same
 function and FORTRAN routine for fitting a model with the Barrodale-Roberts simplex 
-algorithm. In this case, however, the optinal argument, `ci` is set to true.
+algorithm. In this case, however, the optinal argument, `ci` is set to true. One can see the
+documentation for this function in the [Barrodale-Roberts Simplex Method](@ref) section 
+of the [Fitting Quantile Regression Models](@ref) section.
 
-```@docs
-QuantReg.fitbr!
-```
-
-There are three subroutines specific to computing inference vai rank test inversion. End
+There are three subroutines specific to computing inference via rank test inversion. End
 users should not need to call these directly.
 
 ```@docs

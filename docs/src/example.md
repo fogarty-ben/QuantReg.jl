@@ -35,7 +35,7 @@ julia> df = CSV.read("./bwght.csv")
 Using the `rq` function, we the fit three quantile regression models at the 0.25th, 0.50th,
 and 0.75 quantiles. We specify that the models be fit using the Barrodale-Roberts simplex
 algorithm, and otherwise allow the program to choose sensible defaults (see
-[QuantReg.QuantRegModel](@ref)).
+[QuantRegModel](@ref)).
 
 ```
 julia> models = rq(@formula(birthweight ~ boy + married + black + age + highschool +
