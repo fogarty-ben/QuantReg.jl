@@ -250,7 +250,7 @@ StatsBase.isfitted(model::QuantRegModel) = model.fit.computed
 StatsBase.islinear(::QuantRegModel) = true
 StatsBase.nobs(model::QuantRegModel) = size(model.mm.m)[1]
 StatsBase.stderr(model::QuantRegModel) = model.inf.computed ?
-                                        (!model.inf.invers ? model.inf.σ :
+                                        (!model.invers ? model.inf.σ :
                                          ["NA" for i=1:dof(model)]) :
                                         error("Inference hasn't been computed")                            
 StatsBase.modelmatrix(model::QuantRegModel) = model.mm
