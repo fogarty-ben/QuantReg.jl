@@ -184,8 +184,8 @@ function fitgurobi!(model::QuantRegModel)
         model
     else
         error("Gurobi not properly installed/configured on this machine.\nIf Gurobi is " *
-              "installed, be sure that the environment variable GUROBI_HOME is set to " *
-              "the location of your Gurobi installation before loading QuantReg.jl.")
+              "installed, be sure that the environment variable GUROBI_HOME\nis set to " *
+              "the location of your Gurobi installation before loading\nQuantReg.jl.")
     end
 end
 
@@ -216,16 +216,17 @@ function fitfn!(model::QuantRegModel)
     wn[1 : n] .= float(1 - model.τ)
     wp = zeros(k, k + 3)
     nit = Int.(zeros(3))
-    info = [1]
+    info = [0]
     
     ccall(("rqfnb_", rqfnblib), Cvoid,
           (Ref{Int32}, Ref{Int32}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64},
            Ptr{Float64}, Ref{Float64}, Ref{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Int32},
            Ptr{Int32}),
           n, k, a, y, rhs, dsol, μ, β, ϵ, wn, wp, nit, info)
-    
-          if info[1] != 0
-        error("Fitting error: singular design matrix in stepy.")
+
+    if info[1] != 0
+        @warn("Fitting warning: singular design matrix in stepy. It is suggested you\n" *
+               "check your results with a different fitting method.")
     end
     
     model.fit.computed = true
