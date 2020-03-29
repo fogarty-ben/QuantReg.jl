@@ -16,5 +16,4 @@ makedocs(sitename="QuantReg.jl",
 
 deploydocs(
     repo="github.com/fogarty-ben/QuantReg.jl.git",
-    versions=[["stable" => devurl, devurl => devurl]]
 )
