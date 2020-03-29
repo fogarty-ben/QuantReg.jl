@@ -72,7 +72,7 @@ function fitbr!(model::QuantRegModel; ci=false)
         @warn("Solution may be non-unique. See " *
               "http://www.econ.uiuc.edu/~roger/research/rq/FAQ #1/2.")
     end
-    
+
     if !ci # update model.fit
         model.fit.computed = true
         model.fit.coef = β
@@ -122,6 +122,11 @@ function fitbrfortran(n::Integer, k::Integer, X::Matrix{<:Number}, y::Vector{<:N
     ci = zeros(4, k) # calculated confidence intervals
     tnmat = zeros(4, k) # JGPK rank test statistics
     big = prevfloat(Inf) # largest float from machine
+
+    y = float.(y) # sanitizing y to be a Float64
+    X = float.(X) # sanitizing X to be a Float64
+    qn = float.(qn) # sanitzing qn to be a Float64
+    cutoff = float.(cutoff) # sanitizing cutoff to be a Float64
 
     ccall(("rqbr_", rqbrlib), Cvoid,
           (Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32},
@@ -192,7 +197,7 @@ Fit `model` using the Frish-Newton algorithm.
 Fitting with this method does not produce solutions to the dual problem.
 
 This fitting method leverages public domain FORTRAN code written by Roger Koenker for the R
-`quantreg` package. In the `quantreg` packaage, this is equivalent to the `fn` and `fnb`
+`quantreg` package. In the `quantreg` package, this is equivalent to the `fn` and `fnb`
 methods.
 """
 function fitfn!(model::QuantRegModel)
@@ -201,16 +206,16 @@ function fitfn!(model::QuantRegModel)
         error("Cannot use Barrodale-Roberts method for τ extremely close to 0 or 1.")
     end
     n, k = size(model.mm.m)
-    a = convert(Array, transpose(model.mm.m))
-    y = -1 .* response(model.mf)
-    rhs = (1 - model.τ) .* mapslices(sum, model.mm.m, dims=1)
+    a = convert(Array{Float64}, transpose(model.mm.m))
+    y = float.(-1 .* response(model.mf))
+    rhs = float.((1 - model.τ) .* mapslices(sum, model.mm.m, dims=1))
     dsol = ones(n)
     μ = ones(n)
     β = 0.99995
     wn = zeros(10 * n)
-    wn[1 : n] .= (1 - model.τ)
+    wn[1 : n] .= float(1 - model.τ)
     wp = zeros(k, k + 3)
-    nit = zeros(3)
+    nit = Int.(zeros(3))
     info = [1]
     
     ccall(("rqfnb_", rqfnblib), Cvoid,
