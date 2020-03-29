@@ -334,9 +334,8 @@ end
 Display each model in `models`.
 """
 function Base.show(io::IO, models::QuantRegModels)
-
-    for (τ, model) in sort(collect(models.models))
-        show(io, model)
+    for τ in sort(collect(keys(models.models)))
+        show(io, models[τ])
     end
 
 end
