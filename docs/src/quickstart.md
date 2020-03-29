@@ -30,18 +30,18 @@ julia> model = rq(@formula(Y ~ X1 + X2 + X3), df; τ=0.50)
 
 The resulting object `model` contains a median regression fitted and with inference computed
 according to default settings. For more information on default settings, see the
-[type(QuantRegModel)](@ref) reference.
+[QuantRegModel](@ref) reference.
 
 Withing the result object, `model.fit` contains the results of fitting the model, including
 the coefficients, residuals, fitted values, and, for some fitting methods, the solution to
 the dual problem. For more information on how to access these values, see the
-[type(QuantRegFit)](@ref) reference.
+[QuantRegFit](@ref) reference.
 
 `model.inf` containts the results of computing inference for the model, encompasses
 confidence interval bounds if a rank test inversion is used to compute inference and
 encompasses standard errors, test statistics, p-values, and confidence interval bounds if
 inference is computed using asymptotic estimates of the covariance matrix. For more
-information on how to access these values, see the [type(QuantRegInf)](@ref) reference.
+information on how to access these values, see the [QuantRegInf](@ref) reference.
 
 ## Running models at multiple quantiles
 
@@ -84,9 +84,9 @@ rq
 In code, the `rq` functions is really a wrapper for three functions that constitute a common
 work flow. It first constructs a `QuantRegModel` object according to the specifications
 provided. Then, it fits the model in place according to the specifications in the generated
-model object with [func(fit!)](@ref). This function call updates the `QuantRegFit` object
+model object with [fit!](@ref). This function call updates the `QuantRegFit` object
 stored in the model object. Finally, it computes inference for the model according to the
-specifications in the generated model object with [func(compute_inf!)](@ref). This function
+specifications in the generated model object with [compute_inf!](@ref). This function
 call updates the `QuantRegInf` object stored in the model object.
 
 For example, the call:

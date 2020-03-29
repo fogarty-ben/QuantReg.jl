@@ -89,8 +89,8 @@ to be iid and `compute_σ_nid_asy` otherwise. These functions are closely modele
 code in the R quantreg pakage.
 
 ```@docs
-QuantReg.compute_σ_iid_asy!
-QuantReg.compute_σ_nid_asy!
+QuantReg.compute_σ_iid_asy
+QuantReg.compute_σ_nid_asy
 ```
 
 ## Subroutines
