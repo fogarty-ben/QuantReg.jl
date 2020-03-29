@@ -84,7 +84,7 @@ Use of this default constructor is not recommended. If rank test inversion is us
 compute inference, then the Hall-Sheather bandwidths flag will always be set to true,
 overriding user choices.
 """
-struct QuantRegModel <: StatisticalModel
+struct QuantRegModel <: RegressionModel
     formula::FormulaTerm
     data::DataFrame
     mf::ModelFrame
