@@ -7,8 +7,8 @@ if haskey(ENV, "GUROBI_HOME") # ensure Gurobi is installed before loading packag
     using Gurobi
 end
 
-export coef, coefnames, coeftable, dof, dof_residual, fitted, @formula, isfitted, islinear,
-       nobs, modelmatrix, response, responsename, residuals, stderr
+export coef, coefnames, coeftable, confint, dof, dof_residual, fitted, @formula, isfitted,
+       islinear, nobs, modelmatrix, response, responsename, residuals, stderr
 
 export
     # Model type
