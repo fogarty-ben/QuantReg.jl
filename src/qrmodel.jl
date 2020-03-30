@@ -259,11 +259,11 @@ StatsBase.responsename(model::QuantRegModel) = terms(model.formula)[1]
 StatsBase.residuals(model::QuantRegModel) = model.fit.computed ? model.fit.resid :
                                             error("Model hasn't been fit.")
 
-```
+"""
     coeftable(model::QuantRegModel)
 
 Return a table of class CoefTable with coefficients and related statistics.
-```
+"""
 function StatsBase.coeftable(model::QuantRegModel)
     if !model.fit.computed
         error("Model hasn't been fit.")
