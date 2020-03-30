@@ -9,7 +9,7 @@ package and only works if Gurobi is already installed on the user's machine.
 ## Generic functions
 
 A `QuantRegModel` object, named `model`, can be fit using the generic `fit!()` function, and
-indeed this is the function that most end users will leverage. This functions fits the
+indeed, this is the function that most end users will leverage. This functions fits the
 object in place, modifying the `QuantRegFit` object stored at `model.fit`. For example,
 
 ```
@@ -29,12 +29,12 @@ Additionaly, there is a `fit()` method that creates a deep copy of the passed mo
 that copy, and returns the new, fitted model.
 
 ```@docs
-QuantReg.fit!
+QuantReg.fit!(::QuantRegModel)
 QuantReg.fit
 ```
 
 Ultimately, these two functions simply serve as a one-stop wrapper for fitting a model and
-call different subroutines depending on the value of `model.fitmethod`.
+calling different subroutines depending on the value of `model.fitmethod`.
 
 ## Choosing a fitting method
 
@@ -48,25 +48,24 @@ of the dataset that you are attempting to fit.
     one second), so either method seems like a good choice. Using Gurobi, however, imposes a
     signficant speed penalty, mainly due to the fixed cost of initializing a Gurobi
     environment. While the method still produces results relatively quickly (sub-two
-    seconds), it is still substantially slower than the other algorithms.
+    seconds), this is substantially slower than the other algorithms.
 - As datasets grow in size, the Frisch-Newton algorithm and Gurobi catch-up to and
     substantially overtake the Barrodale-Roberts simplex algorithm in speed. With the
     exception of extremely large datasets, the Frisch-Newton algorithm still tends to
-    outperform the Gurobi algorithm due to its fixed start-up costs. The speed of the two
-    methods is relatively similar in scale, however.
+    outperform the Gurobi algorithm due to the latter's fixed start-up costs. The speed of
+    the two methods is relatively similar in scale, however.
 
 Going forward in development, the goal for the Gurobi solving method should be to produce
-a reusable Gurobi environment upon load that can be reused across multiple runs to eliminate
-the fixed start-up costs.
+a reusable Gurobi environment upon load to eliminate the fixed start-up costs.
 
 ## Barrodale-Roberts Simplex Method
 
-The Barrodale-Roberts simplex algorithm implemented can be used for both fitting the model
+The Barrodale-Roberts simplex algorithm implemented can be used for both fitting a model
 and for computing inference via a rank test inversion. When fitting, the following method is
 called with the keyword argument, `ci`, set to its default value of false.
 
 To select this method when specifying a quantile regression model, set the keyword argument
-`fitmethod="br"` in either the `rq` function of the `QuantRegModel` constructor.
+`fitmethod="br"` in either the `rq` function or the `QuantRegModel` constructor.
 
 ```@docs
 QuantReg.fitbr!
@@ -85,7 +84,7 @@ solve quantile regression problems. Unlike the other two methods in this package
 method does not produce solutions to the dual problem.
 
 To select this method when specifying a quantile regression model, set the keyword argument
-`fitmethod="fn"` in either the `rq` function of the `QuantRegModel` constructor.
+`fitmethod="fn"` in either the `rq` function or the `QuantRegModel` constructor.
 
 ```@docs
 QuantReg.fitfn!
@@ -96,14 +95,12 @@ QuantReg.fitfn!
 The only fitting method available via this package that is not available via the R quantreg
 package is fitting via Gurobi. This fitting method is only available to users who already
 have a licensed version of Gurobi installed on their machine and the Gurobi.jl package
-added in Julia. Note that Gurobi.jl is not installed as a dependency of QuantReg.jl so that
-the package is accessible to users without a licensed version of Gurobi (the package
-Gurobi.jl cannot be properly installed without a licensed version of Gurobi). Further note
-that even if an active Gurobi license is installed on the user's machine, the `GUROBI_HOME`
-environmental variable must be properly set for the Gurobi fitting method to be available.
+added in Julia. Even if an active Gurobi license is installed on the user's machine, the
+`GUROBI_HOME` environmental variable must be properly set for the Gurobi fitting method to
+be available.
 
 To select this method when specifying a quantile regression model, set the keyword argument
-`fitmethod="fn"` in either the `gurobi` function of the `QuantRegModel` constructor.
+`fitmethod="gurobi"` in either the `rq` function or the `QuantRegModel` constructor.
 
 ```@docs
 QuantReg.fitgurobi!

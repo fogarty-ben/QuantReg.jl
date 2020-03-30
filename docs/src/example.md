@@ -1,11 +1,11 @@
 # Example
 
-To further explain the use of this package, consider the following short example. We use a
+To further explore the use of this package, consider the following short example. We use a
 9,800 observation subset of the [1996 US natality dataset used in Abrevaya (2006).]
 (http://qed.econ.queensu.ca/jae/2006-v21.4/abrevaya/)
 
-To load this dataset and run quantile regressions, we first load in the Julia CSV.jl package
-and the QuantReg.jl package then load the dataset from file.
+To load this dataset and run quantile regressions, we first load in the CSV.jl and 
+QuantReg.jl packages then import the dataset from file:
 
 ```
 julia> using CSV, QuantReg
@@ -33,8 +33,8 @@ julia> df = CSV.read("./bwght.csv")
 ```
 
 Using the `rq` function, we the fit three quantile regression models at the 0.25th, 0.50th,
-and 0.75 quantiles. We specify that the models be fit using the Barrodale-Roberts simplex
-algorithm, and otherwise allow the program to choose sensible defaults (see
+and 0.75th quantiles. We specify for the models be fit using the Barrodale-Roberts simplex
+algorithm but otherwise allow the program to choose sensible defaults (see
 [QuantRegModel](@ref)).
 
 ```
@@ -113,7 +113,7 @@ weightgain       3.98305    0.355627   11.2001    0.0               3.28595     
 Degrees of freedom: 9800 total; 9786 residual
 ```
 
-Above, we can see the results of the three models printed to console. These results plus
+Above, we can see the results of the three models printed to the console. These results plus
 deeper information about each of the models is also stored in the `models` object. We can
 directly access each of the models by indexing the `models` object by τ values. For example,
 to access the median regression object, we would do the following:
@@ -209,8 +209,8 @@ Degrees of freedom: 9800 total; 9786 residual
 
 Returning to the original model fit at the 0.50th quantile, we can also access information
 about its fit and inference directly. Since we fit via the Barrodale-Roberts simplex
-algorithm, the program computes and stores dual solutions to the quantile regression
-linear program. We can access those as follows:
+algorithm, the program computes and stores the dual solution to the quantile regression
+linear program. We can access that solution as follows:
 
 ```
 julia> models[0.5].fit.dual
@@ -231,7 +231,7 @@ julia> models[0.5].fit.dual
 There are a number of other values that can be accessed via the fields of the `QuantRegFit`
 object stored at `models[0.5].fit`. For a full list, see the [QuantRegFit](@ref) section.
 
-Similarly, we could access the column vector of standard errors direction as follows:
+Similarly, we could access the column vector of standard errors seen above as follows:
 
 ```
 julia> models[0.5].inf.σ
