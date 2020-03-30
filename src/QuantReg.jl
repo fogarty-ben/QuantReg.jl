@@ -23,6 +23,6 @@ export
 
 include("qrmodel.jl")
 include("fitqr.jl")
-include("ci.jl")
+include("inference.jl")
 
 end # module

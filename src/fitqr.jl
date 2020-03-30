@@ -4,7 +4,7 @@ const rqfnblib = joinpath(@__DIR__, "FORTRAN/rqfnb")
 """
     fit!(model::QuantRegModel)
 
-Fit `model` in-place according to `model.fit.method`.
+Fit `model` in-place according to `model.fitmethod`.
 """
 function StatsBase.fit!(model::QuantRegModel)
     if !model.fit.computed & 0 <= model.τ <= 1
@@ -32,7 +32,7 @@ end
 """
     fit(model::QuantRegModel)
 
-Deep copy `model` and fit according to `model.fit.method`.
+Deep copy `model` and fit according to `model.fitmethod`.
 """
 fit(model::QuantRegModel) = fit!(deepcopy(model))
 
@@ -42,9 +42,9 @@ fit(model::QuantRegModel) = fit!(deepcopy(model))
 Fit `model` using the Barrodale-Roberts method.
 
 If ci is false, `model.fit` is updated in place to reflect the fit produced by running the
-Barrodale-Roberts simplex, and confidence intervals are not computed. Otherwise, confidence
+Barrodale-Roberts simplex and confidence intervals are not computed. Otherwise, confidence
 intervals are computed, and `model.inf` is updated in place to reflect the confidence
-invervals produced by this method, but `model.fit` is not updated.
+invervals produced by this method but `model.fit` is not updated.
 
 This fitting method leverages public domain FORTRAN code written by Roger Koenker for the R
 `quantreg` package.

@@ -42,7 +42,7 @@ end
 Stores results of computing inference for a quantile regression
 model.
 
-`lowerci`, `upperci`, `σ`, `teststat` should be set to `nothing` until inference is
+`lowerci`, `upperci`, `σ`, `teststat`, and `p` should be set to `nothing` until inference is
 computed.
 """
 mutable struct QuantRegInf
@@ -81,8 +81,8 @@ Contains a quantile regression model at the `τ`th quantile fitting `data` accor
 `formula`.
 
 Use of this default constructor is not recommended. If rank test inversion is used to
-compute inference, then the Hall-Sheather bandwidths flag will always be set to true,
-overriding user choices.
+compute inference, then the Hall-Sheather bandwidth flag will always be set to true,
+overriding user input.
 """
 struct QuantRegModel <: RegressionModel
     formula::FormulaTerm
@@ -121,8 +121,8 @@ end
 Construct a quantile regression model at the `τ`th quantile fitting `data` according to
 `formula`.
 
-In any call, `formula` and `data` must be set. The logic for selecting values for
-unspecified parameters is as follows:
+In any call, `formula` and `data` must be set. The logic for setting values of unspecified
+parameters is as follows:
 - `τ`: default is 0.5, i.e. median regression
 - `fitmethod`: default method is the Barrodale-Roberts simplex
 - `invers`: default setting is true for datasets with 1000 or fewer observations and false
@@ -174,8 +174,8 @@ end
 Construct a new quantile regression model by changing one or more parameters in an
 existing model.
 
-If `τ` or `method` are unchanged, then the model fit is retained from the passed model but
-the model inference type is not.
+If `τ` or `method` are unchanged, then the model fit is copied from the passed model but
+the model inf is not. Otherwise, neither is copied.
 """
 function QuantRegModel(model::QuantRegModel; τ::Union{Nothing, Number}=nothing,
                        fitmethod::Union{Nothing, String}=nothing,
@@ -259,7 +259,11 @@ StatsBase.responsename(model::QuantRegModel) = terms(model.formula)[1]
 StatsBase.residuals(model::QuantRegModel) = model.fit.computed ? model.fit.resid :
                                             error("Model hasn't been fit.")
 
+```
+    coeftable(model::QuantRegModel)
 
+Return a table of class CoefTable with coefficients and related statistics.
+```
 function StatsBase.coeftable(model::QuantRegModel)
     if !model.fit.computed
         error("Model hasn't been fit.")
@@ -294,7 +298,7 @@ end
 """
     show(io::IO, model::QuantRegModel)
 
-Display quantreg model.
+Display a quantreg model.
 """
 function Base.show(io::IO, model::QuantRegModel)
     println()
@@ -310,15 +314,15 @@ function Base.show(io::IO, model::QuantRegModel)
 end
 
 """
-QuantRegModels()
+    QuantRegModels()
 
 Wrapper containing multiple QuantRegModel at different quantiles indexed by quantile. 
 
-This method partically implements some behaviors of a dictionary (for easy indexing) and
-some behaviors of an array (for easy, consistent appends). This type is not intended to be
-directly created by most end users.
+This method implements some behaviors of a dictionary (for easy indexing) and some behaviors
+of an array (for easy, consistent appends). This type is not intended to be directly created
+by most end users.
 
-For example, if a models::QuantRegModels contained models with `τ`=0.25, 0.5 and 0.75, these
+If `models::QuantRegModels` contained models with `τ`=0.25, 0.5 and 0.75, these
 models could be accessed as `models[0.25], models[0.5],` and `models[0.75]` respectively.
 """
 struct QuantRegModels
@@ -343,22 +347,23 @@ end
 """
     getindex(X::QuantRegModels, τ::Number)
 
-Returns the model in `X` fit at the τth quantile.
+Returns the model in `X` at the τth quantile.
 """
 Base.getindex(X::QuantRegModels, τ::Number) = X.models[τ]
 
 """
     getindex(X::QuantRegModels, τ::Number)
 
-Check if `X` contains a model at the τth percentile.
+Check if `X` contains a model at the τth quantile.
 """
 hastau(X::QuantRegModels, τ::Number) = haskey(X.models, τ)
 
 """
     append!(X::QuantRegModels, model::QuantRegModel)
 
-Add `model` to `X` in-place; throws an error if `X` already contains a model with the same
-τ value as `model`.
+Add `model` to `X` in-place
+
+Throws an error if `X` already contains a model with the same τ value as `model`.
 """   
 Base.append!(X::QuantRegModels, model::QuantRegModel) = !hastau(X, model.τ) ? 
                                                         setindex!(X.models, model, model.τ) :
@@ -377,9 +382,11 @@ taus(X::QuantRegModels) = keys(X.models)
 """
     rq(formula::FormulaTerm, data::DataFrame; kwargs)
 
-Generate, fit, and compute inference for the specified quantile regression model.
+Generate, fit, and compute inference for a regression regression model according to the
+given specifications.
 
-Acceptable kwargs are the same as those accepted by [QuantRegModel](@ref).
+Acceptable kwargs are the same as those accepted by [QuantRegModel](@ref). To fit a model
+at multple quantiles, users can pass an array of quantiles values.
 """
 function rq(formula::FormulaTerm, data::DataFrame; τ=0.5, kwargs...)
     kwargs = Dict(kwargs)
