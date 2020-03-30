@@ -38,7 +38,26 @@ call different subroutines depending on the value of `model.fitmethod`.
 
 ## Choosing a fitting method
 
-* TODO: Write about simulation results *
+Choosing the best fit method for a quantile regression model largely depends upon the size
+of the dataset that you are attempting to fit.
+
+- For very small datasets (both in number of observations and number of predictors) the
+    Barrodale-Roberts simplex tended to outperform other fitting methods in limited
+    simulations. The speed difference between the Barrodale-Roberts simplex algorithm and
+    the Frisch-Newton algorithm, however, was negligible (both returned a model well within
+    one second), so either method seems like a good choice. Using Gurobi, however, imposes a
+    signficant speed penalty, mainly due to the fixed cost of initializing a Gurobi
+    environment. While the method still produces results relatively quickly (sub-two
+    seconds), it is still substantially slower than the other algorithms.
+- As datasets grow in size, the Frisch-Newton algorithm and Gurobi catch-up to and
+    substantially overtake the Barrodale-Roberts simplex algorithm in speed. With the
+    exception of extremely large datasets, the Frisch-Newton algorithm still tends to
+    outperform the Gurobi algorithm due to its fixed start-up costs. The speed of the two
+    methods is relatively similar in scale, however.
+
+Going forward in development, the goal for the Gurobi solving method should be to produce
+a reusable Gurobi environment upon load that can be reused across multiple runs to eliminate
+the fixed start-up costs.
 
 ## Barrodale-Roberts Simplex Method
 
