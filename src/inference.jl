@@ -28,7 +28,7 @@ end
 Write ranks test inversion confidence intervals to `model.inf`.
 
 `ci` should be a set of  confidence interval matrix produced by a call to
-[`fitbr(model; ci=true)`].
+`fitbr(model; ci=true)`.
 """
 function write_ci!(model::QuantRegModel, ci::Array{Float64, 2}, tnmat::Array{Float64, 2},
                    cutoff::Float64)
@@ -51,7 +51,7 @@ end
 """
     compute_inf!(model)
 
-In-place version of [`compute_inf!(model)`]
+In-place version of `compute_inf!`.
 """
 function compute_inf!(model::QuantRegModel)
     if !model.fit.computed
@@ -84,13 +84,13 @@ end
 """
     compute_inf(model::QuantRegModel)
 
-Compute inference for `model` as specified in `model.inf`.
+Compute inference for `model` as specified in that object.
 """
 compute_inf(model::QuantRegModel) = compute_inf!(copy(model))
 
 """
     compute_nid_qn_invers(i::Integer, data::DataFrame, regressors::Array{<:AbstractTerm},
-                      weights::Array{<:Number})
+                          weights::Array{<:Number})
 
 Computes residuals variances from the projection of each column of X on remaining columns
 for rank test inversion inference under the n.i.d. assumption.
@@ -118,11 +118,11 @@ end
 """
     init_inf_invers(model::QuantRegModel)
 
-Initialize necessary values for calculating confidence intervals for model with a rank test
+Initialize necessary values for calculating confidence intervals for model via rank test
 inversion. 
 
 This function should be of little interest to end users as it is solely used as a subroutine
-when calling [`fitbr(model; ci=true)`].
+when calling `fitbr(model; ci=true)`.
 """
 function init_ci_invers(model::QuantRegModel)
     n, k = size(model.mm.m)
@@ -174,7 +174,7 @@ end
 """
     compute_σ_iid_asy(model::QuantRegModel)
 
-Compute standard errors for a `model` using an estimate of the asymptotic covariance matrix
+Compute standard errors for `model` using an estimate of the asymptotic covariance matrix
 under the assumtion that errors are iid.
 """
 function compute_σ_iid_asy(model::QuantRegModel)
@@ -207,7 +207,7 @@ end
 """
     compute_σ_nid_asy(model::QuantRegModel)
 
-Compute standard errors for a `model` using an estimate of the asymptotic covariance matrix
+Compute standard errors for `model` using an estimate of the asymptotic covariance matrix
 under the assumption that the conditional quantile function is locally (in tau) linear
 (in x).  
 """
