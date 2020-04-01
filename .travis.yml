@@ -11,7 +11,7 @@ jobs:
   include:
     - stage: "Test"
       julia: 1.4.0
-      os: osx
+      os: linux
       script:
         - julia --check-bounds=yes --color=yes -e 'using Pkg; Pkg.test("QuantReg", coverage=true);'
 
