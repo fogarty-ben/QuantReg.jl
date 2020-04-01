@@ -1,6 +1,3 @@
-const rqbrlib = joinpath(@__DIR__, "FORTRAN/rqbr")
-const rqfnblib = joinpath(@__DIR__, "FORTRAN/rqfnb")
-
 """
     fit!(model::QuantRegModel)
 
@@ -128,7 +125,7 @@ function fitbrfortran(n::Integer, k::Integer, X::Matrix{<:Number}, y::Vector{<:N
     qn = float.(qn) # sanitzing qn to be a Float64
     cutoff = float.(cutoff) # sanitizing cutoff to be a Float64
 
-    ccall(("rqbr_", rqbrlib), Cvoid,
+    ccall((:rqbr_, librqbr), Cvoid,
           (Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32},
            Ptr{Float64}, Ptr{Float64}, Ref{Float64}, Ref{Float64}, Ptr{Int32}, Ptr{Float64},
            Ptr{Float64}, Ptr{Int32}, Ptr{Float64}, Ptr{Float64}, Ref{Int32}, Ref{Int32},
@@ -218,7 +215,7 @@ function fitfn!(model::QuantRegModel)
     nit = Int.(zeros(3))
     info = [0]
     
-    ccall(("rqfnb_", rqfnblib), Cvoid,
+    ccall((:rqfnb_, librqfnb), Cvoid,
           (Ref{Int32}, Ref{Int32}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64},
            Ptr{Float64}, Ref{Float64}, Ref{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Int32},
            Ptr{Int32}),

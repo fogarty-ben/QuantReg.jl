@@ -1,6 +1,6 @@
 module QuantReg
 
-using DataFrames, Distributions, Format, GLM, JuMP, LinearAlgebra, StatsBase,
+using DataFrames, Distributions, Format, GLM, JuMP, LinearAlgebra, QuantReg_jll, StatsBase,
       StatsModels, Statistics
 
 if haskey(ENV, "GUROBI_HOME") # ensure Gurobi is installed before loading package
