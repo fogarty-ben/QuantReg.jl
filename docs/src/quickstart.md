@@ -7,7 +7,7 @@ will need to run the following commands:
 
 ```
 julia> using Pkg
-julia> Pkg.add(QuantReg)
+julia> Pkg.add("QuantReg")
 ```
 
 The Gurobi.jl dependency package may fail to build if Gurobi is not installed on the
