@@ -1,5 +1,5 @@
 # QuantReg.jl
-[![Build Status](https://api.travis-ci.com/fogarty-ben/QuantReg.jl.png?branch=master)](https://travis-ci.org/fogarty-bet/QuantReg.jl)
+[![Build Status](https://api.travis-ci.com/fogarty-ben/QuantReg.jl.svg?branch=master)](https://travis-ci.org/fogarty-ben/QuantReg.jl)
 
 [![Dev Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://fogarty-ben.github.io/QuantReg.jl/dev)
 [![Stable Docs](https://img.shields.io/badge/docs-stable-blue.svg)](https://fogarty-ben.github.io/QuantReg.jl/stable)
