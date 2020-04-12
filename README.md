@@ -1,6 +1,7 @@
 # QuantReg.jl
 [![Build Status](https://travis-ci.org/fogarty-ben/QuantReg.jl.png?branch=master)](https://travis-ci.org/{ORG-or-USERNAME}/{REPO-NAME})
-[![Dev Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://fogarty-ben.github.io/QuantReg.jl/dv)
+[![Dev Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://fogarty-ben.github.io/QuantReg.jl/dev)
+[![Stable Docs](https://img.shields.io/badge/docs-stable-blue.svg)](https://fogarty-ben.github.io/QuantReg.jl/stable)
 
 This package provides types and functions for specifying, fitting, and computing inference
 for quantile regression models. This package was modeled after and employs FORTRAN libraries
@@ -13,13 +14,3 @@ add new features, or refine existing features are welcomed and encouraged
 [on the project's GitHub.](https://github.com/fogarty-ben/QuantReg.jl) Please feel free to
 open an issue or pull request!
 
-!!! note
-    This project is currently pre-release pending a solution to reliably cross-compiling
-    the underlying FORTRAN libraries from quantreg. This issue should be resolved with a
-    few small changes pending the merge of
-    [this pull request to Yggdrasil](https://github.com/JuliaPackaging/Yggdrasil/pull/683)
-    into master.
-    
-    For the time being, however, this repository contains the FORTRAN source needed to
-    execute the project. Users should build this source into dynamic libraries using the
-    commands in the [Quickstart Guide](@ref) to run the program.
