@@ -2,66 +2,23 @@
 
 ## Installation
 
-QuantReg.jl is not currently available via the Julia general repository and is pre-release.
-To use it on your machine, you will need to run the following commands.
-
-Using git, clone the QuantReg.jl repository:
-
-```
-% git clone https://github.com/fogarty-ben/QuantReg.jl
-```
-
-After cloning the repository, `cd` into `QuantReg.jl/src/FORTRAN`:
-
-```
-% cd QuantReg.jl/src/FORTRAN
-```
-
-Once inside this directory, users need to build the two FORTRAN dependencies, `rqbr.f` and
-`rqfnb.f`. I recommend using the gfortran compiler as in the following lines, replacing 
-`${dlext}` with `dll` on Windows, `dylib` on OSX, and `so` on Linux:
-
-```
-% gfortran -o rqbr.${dlext} -fPIC -shared -std=legacy rqbr.f 
-% gfortran -o rqfnb.${dlext} -fPIC -shared -std=legacy rqfnb.f
-```
-
-This should produce two new files, `rqbr.${dlext}` and `rqfnb.${dlext}` in the
-`QuantReg/src/FORTRAN` directory.
-
-Now, the package is ready do be loaded into Julia; first, `cd` into the root directory of
-the project. If you are still in the `QuantReg/src/FORTRAN` directory, run the following
-command:
-
-```
-% cd ../..
-```
-
-Then, open the Julia REPL in project mode using the following command:
-
-```
-% julia --project
-```
-
-Once the Julia REPL opens, install dependencies for the project as follows:
+QuantReg.jl is available via the Julia general repository. To use it on your machine, you
+will need to run the following commands:
 
 ```
 julia> using Pkg
-julia> Pkg.instantiate()
+julia> Pkg.add(QuantReg)
 ```
 
-The Gurobi.jl package may fail to build if Gurobi is not installed on the machine; this is
-okay. QuantReg.jl can now be loaded in the REPL with the following command:
+The Gurobi.jl dependency package may fail to build if Gurobi is not installed on the
+machine; this is okay. QuantReg.jl can now be loaded in the REPL with the following command:
 
 ```
-using QuantReg
+julia> using QuantReg
 ```
 
 Note that pre-compilation may take some time the first time the package is loaded; this is
-also to be expected. After performing these steps once, users should be able to load the
-project simply by starting the Julia REPL in project mode from the root of the QuantReg.jl
-project directory and loading the package. There should be no need to rebuild the FORTRAN
-libraries or redownload the package dependencies.
+also to be expected.
 
 ## Running your first model
 
