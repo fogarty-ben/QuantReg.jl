@@ -13,4 +13,3 @@ Contributions to this package that incorporate more features from the R quantreg
 add new features, or refine existing features are welcomed and encouraged
 [on the project's GitHub.](https://github.com/fogarty-ben/QuantReg.jl) Please feel free to
 open an issue or pull request!
-
